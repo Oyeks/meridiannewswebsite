@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Meridian — News App</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+[data-theme="dark"]{
+  --bg:#0a0a0b;--surface:#111113;--surface2:#18181c;--surface3:#1f1f23;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#e8c97a;--accent2:#4fffb0;--accent3:#ff6b6b;--accent4:#7eb8ff;
+  --text:#f0ede8;--muted:#6b6870;--muted2:#999098;
+  --ticker-bg:#060608;--nav-bg:rgba(10,10,11,0.96);
+  --modal-bg:#111113;--modal-overlay:rgba(0,0,0,0.88);
+  --shadow:0 32px 100px rgba(0,0,0,0.8);
+  --card-hover:#151518;
+}
+[data-theme="light"]{
+  --bg:#f4f1ec;--surface:#ffffff;--surface2:#ede9e2;--surface3:#e8e4dc;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --accent:#8a5e00;--accent2:#1a7a50;--accent3:#c0392b;--accent4:#2563eb;
+  --text:#1a1814;--muted:#8a8480;--muted2:#5a5450;
+  --ticker-bg:#1a1814;--nav-bg:rgba(244,241,236,0.96);
+  --modal-bg:#ffffff;--modal-overlay:rgba(0,0,0,0.55);
+  --shadow:0 32px 100px rgba(0,0,0,0.2);
+  --card-hover:#f9f7f3;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+
+/* ═══ TOP BAR ═══ */
+.topbar{
+  background:var(--ticker-bg);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:36px;
+  gap:16px;
+}
+.topbar-left{display:flex;align-items:center;gap:0;overflow:hidden;flex:1;min-width:0}
+.topbar-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+
+/* live pill */
+.live-pill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,107,107,0.12);
+  border:1px solid rgba(255,107,107,0.28);
+  border-radius:20px;padding:3px 10px;
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:#ff6b6b;flex-shrink:0;margin-right:16px;
+}
+.live-dot{width:6px;height:6px;background:#ff6b6b;border-radius:50%;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+
+/* lagos clock */
+.lagos-clock{
+  display:flex;align-items:center;gap:7px;
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;
+  color:#999098;flex-shrink:0;
+}
+.clock-city{color:#6b6870;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.clock-time{color:#f0ede8;font-weight:500}
+.clock-sep{opacity:.3}
+
+/* refresh button */
+.topbar-refresh{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(232,201,122,0.1);border:1px solid rgba(232,201,122,0.25);
+  color:#e8c97a;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  font-family:'DM Sans',sans-serif;
+  padding:4px 10px;border-radius:20px;cursor:pointer;
+  transition:all .2s;
+}
+.topbar-refresh:hover{background:rgba(232,201,122,0.18)}
+.topbar-refresh:active{transform:scale(.95)}
+.ri{display:inline-block;transition:transform .1s}
+.spinning .ri{animation:spin .6s linear}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ticker */
+.ticker-wrap{overflow:hidden;position:relative;flex:1;min-width:0}
+.ticker-wrap::before,.ticker-wrap::after{content:'';position:absolute;top:0;bottom:0;width:60px;z-index:2}
+.ticker-wrap::before{left:0;background:linear-gradient(to right,var(--ticker-bg),transparent)}
+.ticker-wrap::after{right:0;background:linear-gradient(to left,var(--ticker-bg),transparent)}
+.ticker-track{display:flex;gap:40px;animation:tick 35s linear infinite;white-space:nowrap}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ti{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em}
+.tl{color:#5a5860}.tv{color:#c8c5c0;font-weight:500}.tu{color:#4fffb0}.td{color:#ff6b6b}.ts{color:rgba(255,255,255,.1)}
+
+/* ═══ NAV ═══ */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 28px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:200;
+  background:var(--nav-bg);backdrop-filter:blur(20px);
+  transition:background .3s;gap:16px;
+}
+.logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.lm{width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#0a0a0b;flex-shrink:0}
+.tabs{display:flex;gap:2px;list-style:none}
+.tabs a{padding:5px 12px;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted2);text-decoration:none;border-radius:20px;transition:all .18s;cursor:pointer;display:block;border:1px solid transparent}
+.tabs a:hover{color:var(--text);background:var(--surface2)}
+.tabs a.active{color:var(--accent);background:var(--surface2);border-color:var(--border)}
+.nr{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sp{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 13px;font-size:12px;color:var(--muted);cursor:pointer;transition:border-color .2s}
+.sp:hover{border-color:var(--border2)}
+.tb{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .2s,transform .25s;user-select:none}
+.tb:hover{background:var(--surface2);transform:rotate(25deg)}
+
+/* ═══ HERO ═══ */
+.hero{display:grid;grid-template-columns:1fr 340px;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.hm{position:relative;background:var(--surface);overflow:hidden;cursor:pointer;min-height:380px;transition:opacity .15s}
+.hm:hover{opacity:.92}
+.hm svg{width:100%;height:100%;position:absolute;inset:0}
+.hc{position:absolute;bottom:0;left:0;right:0;padding:26px 30px;background:linear-gradient(to top,rgba(6,6,8,.98) 0%,rgba(6,6,8,.65) 55%,transparent)}
+[data-theme="light"] .hc{background:linear-gradient(to top,rgba(10,10,11,.92) 0%,rgba(10,10,11,.4) 55%,transparent)}
+.htag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:rgba(232,201,122,.12);border:1px solid rgba(232,201,122,.28);padding:3px 9px;border-radius:4px;margin-bottom:11px}
+.hh{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;line-height:1.18;letter-spacing:-.02em;color:#f0ede8;margin-bottom:10px;max-width:520px}
+.hm2{display:flex;align-items:center;gap:13px;font-size:12px;color:rgba(240,237,232,.55)}
+.hs2{color:rgba(240,237,232,.8);font-weight:500}
+.hs{display:flex;flex-direction:column;background:var(--surface)}
+.ss{flex:1;padding:16px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;display:flex;gap:12px;align-items:flex-start}
+.ss:last-child{border-bottom:none}
+.ss:hover{background:var(--surface2)}
+.ss-img{width:60px;height:50px;border-radius:5px;overflow:hidden;flex-shrink:0}
+.ss-img svg{width:100%;height:100%}
+.ss-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.st{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.st.tech{color:#7eb8ff}.st.sports{color:var(--accent2)}.st.markets{color:var(--accent)}.st.nigeria{color:#a78bfa}.st.world{color:#7eb8ff}.st.politics{color:#f4a261}
+.sh{font-family:'Playfair Display',serif;font-size:13.5px;font-weight:600;line-height:1.3;color:var(--text)}
+.sf{font-size:10px;color:var(--muted)}
+
+/* ═══ BODY ═══ */
+.bl{display:grid;grid-template-columns:1fr 280px;max-width:1280px;margin:0 auto}
+.feed{padding:24px 28px;border-right:1px solid var(--border)}
+.fh{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.ft{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.last-upd{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+.bb{background:linear-gradient(90deg,rgba(255,107,107,.1),transparent);border:1px solid rgba(255,107,107,.2);border-radius:8px;padding:10px 13px;display:flex;align-items:center;gap:9px;margin-bottom:16px;cursor:pointer;transition:border-color .2s}
+.bb:hover{border-color:rgba(255,107,107,.38)}
+.bl2{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#ff6b6b;background:rgba(255,107,107,.12);padding:3px 7px;border-radius:4px;flex-shrink:0}
+.bt{font-size:12px;color:var(--text);line-height:1.4}
+
+.tc{display:none}.tc.active{display:block}
+
+/* ═══ NEWS CARD ═══ */
+.nc{display:grid;grid-template-columns:1fr 96px;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:4px;margin:0 -6px;padding-left:6px;padding-right:6px}
+.nc:last-child{border-bottom:none}
+.nc:hover{background:var(--card-hover)}
+.ctag{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;color:var(--muted)}
+.ctag.nigeria{color:#a78bfa}.ctag.world{color:#7eb8ff}.ctag.tech{color:#7eb8ff}.ctag.sports{color:var(--accent2)}.ctag.markets{color:var(--accent)}.ctag.politics{color:#f4a261}
+.ch{font-family:'Playfair Display',serif;font-size:14.5px;font-weight:600;line-height:1.35;color:var(--text);margin-bottom:6px}
+.ce{font-size:12px;line-height:1.6;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cf{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--muted)}
+.csrc{color:var(--muted2);font-weight:500}.cdot{opacity:.3}
+.ci{width:96px;height:72px;border-radius:7px;overflow:hidden;flex-shrink:0;background:var(--surface2)}
+.ci svg{width:100%;height:100%}
+
+/* ═══ SIDEBAR ═══ */
+.sb{padding:24px 20px}
+.sbs{margin-bottom:26px}
+.sbt{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:13px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.mr{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.mr:last-child{border-bottom:none}
+.mn{font-size:12.5px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;margin-bottom:1px}
+.ml{font-size:10px;color:var(--muted)}
+.mrr{text-align:right}
+.mv{font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;color:var(--text);margin-bottom:1px}
+.mc{font-family:'DM Mono',monospace;font-size:11px;padding:2px 6px;border-radius:4px;display:inline-block}
+.mc.up{color:var(--accent2);background:rgba(79,255,176,.09)}.mc.down{color:#ff6b6b;background:rgba(255,107,107,.09)}
+.tri{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+.tri:last-child{border-bottom:none}.tri:hover{opacity:.7}
+.trn{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--border);line-height:1.1;flex-shrink:0;width:20px}
+.trt{font-size:12.5px;line-height:1.4;color:var(--muted2);font-weight:500}
+.sw{display:flex;flex-wrap:wrap;gap:6px}
+.stg{font-size:11px;color:var(--muted2);background:var(--surface);padding:4px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;transition:border-color .2s}
+.stg:hover{border-color:var(--border2);color:var(--text)}
+
+/* ═══ MINI CHART WIDGET ═══ */
+.chart-widget{background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:26px;border:1px solid var(--border)}
+.cw-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cw-title{font-size:11px;font-weight:600;color:var(--text)}
+.cw-badge{font-size:10px;font-family:'DM Mono',monospace;color:var(--accent2);background:rgba(79,255,176,.09);padding:2px 6px;border-radius:4px}
+
+/* ═══ MODAL ═══ */
+.mo{display:none;position:fixed;inset:0;z-index:500;background:var(--modal-overlay);backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto}
+.mo.open{display:flex}
+.md{background:var(--modal-bg);border:1px solid var(--border);border-radius:14px;max-width:760px;width:100%;box-shadow:var(--shadow);animation:mi .28s cubic-bezier(.22,1,.36,1) both;overflow:hidden}
+@keyframes mi{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
+.mdi{width:100%;height:240px;overflow:hidden;position:relative}
+.mdi svg{width:100%;height:100%}
+.mdb{padding:26px 30px 30px}
+.mdt{display:flex;justify-content:flex-end;margin-bottom:6px}
+.mcl{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--muted2);transition:all .2s}
+.mcl:hover{background:var(--surface3);color:var(--text)}
+.mtg{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:rgba(232,201,122,.1);border:1px solid rgba(232,201,122,.25);padding:3px 9px;border-radius:4px;margin-bottom:12px}
+.mh{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;line-height:1.22;letter-spacing:-.02em;color:var(--text);margin-bottom:12px}
+.mm{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted);margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.msrc{color:var(--muted2);font-weight:600}
+.mt{font-size:14.5px;line-height:1.8;color:var(--text)}
+.mt p{margin-bottom:14px}.mt p:last-child{margin-bottom:0}
+
+/* infographic block inside modal */
+.infographic{margin:20px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.infographic svg{width:100%;display:block}
+.infographic-caption{font-size:11px;color:var(--muted);padding:8px 14px;background:var(--surface2);border-top:1px solid var(--border);text-align:center;font-style:italic}
+
+.mf{padding:14px 30px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ma{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.bp{background:var(--accent);color:#0a0a0b;border:none}.bp:hover{opacity:.87}
+.bg2{background:none;border:1px solid var(--border);color:var(--muted2)}.bg2:hover{border-color:var(--border2);color:var(--text)}
+
+/* refresh flash */
+@keyframes flashIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.new-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--accent2);background:rgba(79,255,176,.1);padding:2px 8px;border-radius:20px;border:1px solid rgba(79,255,176,.2);animation:flashIn .3s ease both;margin-left:8px}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="tickerTrack">
+        <span class="ti"><span class="tl">NGX ASI</span>&nbsp;<span class="tv" id="t-ngx">104,232</span>&nbsp;<span class="tu">▲ +1.24%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">USD/NGN</span>&nbsp;<span class="tv" id="t-usd">1,614.50</span>&nbsp;<span class="td">▼ −0.31%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">BTC</span>&nbsp;<span class="tv" id="t-btc">$103,840</span>&nbsp;<span class="tu">▲ +2.79%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">S&amp;P 500</span>&nbsp;<span class="tv" id="t-sp">5,784</span>&nbsp;<span class="tu">▲ +0.62%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">BRENT</span>&nbsp;<span class="tv" id="t-oil">$74.20</span>&nbsp;<span class="td">▼ −0.94%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">DANGCEM</span>&nbsp;<span class="tv" id="t-dang">₦462</span>&nbsp;<span class="tu">▲ +3.10%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">ETH</span>&nbsp;<span class="tv" id="t-eth">$2,491</span>&nbsp;<span class="tu">▲ +4.12%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">GOLD</span>&nbsp;<span class="tv" id="t-gold">$3,224</span>&nbsp;<span class="td">▼ −0.41%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <!-- duplicate for seamless loop -->
+        <span class="ti"><span class="tl">NGX ASI</span>&nbsp;<span class="tv">104,232</span>&nbsp;<span class="tu">▲ +1.24%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">USD/NGN</span>&nbsp;<span class="tv">1,614.50</span>&nbsp;<span class="td">▼ −0.31%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">BTC</span>&nbsp;<span class="tv">$103,840</span>&nbsp;<span class="tu">▲ +2.79%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">S&amp;P 500</span>&nbsp;<span class="tv">5,784</span>&nbsp;<span class="tu">▲ +0.62%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">BRENT</span>&nbsp;<span class="tv">$74.20</span>&nbsp;<span class="td">▼ −0.94%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">DANGCEM</span>&nbsp;<span class="tv">₦462</span>&nbsp;<span class="tu">▲ +3.10%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">ETH</span>&nbsp;<span class="tv">$2,491</span>&nbsp;<span class="tu">▲ +4.12%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+        <span class="ti"><span class="tl">GOLD</span>&nbsp;<span class="tv">$3,224</span>&nbsp;<span class="td">▼ −0.41%</span></span><span class="ts">&nbsp;|&nbsp;</span>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="lagos-clock">
+      <span class="clock-city">Lagos</span>
+      <span class="clock-sep">·</span>
+      <span class="clock-time" id="lagosClock">--:--:--</span>
+    </div>
+    <button class="topbar-refresh" id="refreshBtn"><span class="ri">↻</span>&nbsp;Refresh</button>
+  </div>
+</div>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="logo"><div class="lm">M</div>The Meridian</div>
+  <ul class="tabs" id="navTabs">
+    <li><a href="#" class="active" data-tab="top">Top Stories</a></li>
+    <li><a href="#" data-tab="nigeria">Nigeria</a></li>
+    <li><a href="#" data-tab="world">World</a></li>
+    <li><a href="#" data-tab="markets">Markets</a></li>
+    <li><a href="#" data-tab="tech">Tech</a></li>
+    <li><a href="#" data-tab="sports">Sports</a></li>
+    <li><a href="#" data-tab="politics">Politics</a></li>
+  </ul>
+  <div class="nr">
+    <div class="sp"><span>⌕</span><span>Search…</span></div>
+    <div class="tb" id="themeBtn">☽</div>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hm" onclick="openArticle('hero')">
+    <!-- Hero illustration: CBN/banking scene -->
+    <svg viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="hg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0d1a2e"/><stop offset="50%" stop-color="#1a1030"/><stop offset="100%" stop-color="#0a0a14"/></linearGradient>
+        <linearGradient id="hg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#e8c97a" stop-opacity=".18"/><stop offset="100%" stop-color="#e8c97a" stop-opacity="0"/></linearGradient>
+        <linearGradient id="hg3" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#4fffb0" stop-opacity=".12"/><stop offset="100%" stop-color="#4fffb0" stop-opacity="0"/></linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <clipPath id="hclip"><rect width="800" height="420"/></clipPath>
+      </defs>
+      <rect width="800" height="420" fill="url(#hg1)"/>
+      <!-- grid lines -->
+      <g stroke="rgba(255,255,255,.04)" stroke-width="1">
+        <line x1="0" y1="60" x2="800" y2="60"/><line x1="0" y1="120" x2="800" y2="120"/>
+        <line x1="0" y1="180" x2="800" y2="180"/><line x1="0" y1="240" x2="800" y2="240"/>
+        <line x1="0" y1="300" x2="800" y2="300"/><line x1="0" y1="360" x2="800" y2="360"/>
+        <line x1="100" y1="0" x2="100" y2="420"/><line x1="200" y1="0" x2="200" y2="420"/>
+        <line x1="300" y1="0" x2="300" y2="420"/><line x1="400" y1="0" x2="400" y2="420"/>
+        <line x1="500" y1="0" x2="500" y2="420"/><line x1="600" y1="0" x2="600" y2="420"/>
+        <line x1="700" y1="0" x2="700" y2="420"/>
+      </g>
+      <!-- chart line -->
+      <polyline points="50,320 120,310 190,295 250,305 320,280 390,265 460,240 530,220 600,200 670,185 730,160 790,140" fill="none" stroke="#e8c97a" stroke-width="2.5" opacity=".7" filter="url(#glow)"/>
+      <polygon points="50,320 120,310 190,295 250,305 320,280 390,265 460,240 530,220 600,200 670,185 730,160 790,140 790,420 50,420" fill="url(#hg2)"/>
+      <!-- secondary line -->
+      <polyline points="50,350 120,345 190,330 250,340 320,320 390,310 460,300 530,290 600,280 670,270 730,260 790,245" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".45" filter="url(#glow)"/>
+      <polygon points="50,350 120,345 190,330 250,340 320,320 390,310 460,300 530,290 600,280 670,270 730,260 790,245 790,420 50,420" fill="url(#hg3)"/>
+      <!-- NGN symbol large -->
+      <text x="580" y="200" font-size="140" font-family="Georgia,serif" fill="rgba(232,201,122,0.06)" font-weight="900">₦</text>
+      <!-- dot on chart -->
+      <circle cx="730" cy="160" r="5" fill="#e8c97a" opacity=".9" filter="url(#glow)"/>
+      <circle cx="730" cy="160" r="10" fill="none" stroke="#e8c97a" stroke-width="1.5" opacity=".4"/>
+      <!-- data labels -->
+      <rect x="640" y="130" width="80" height="22" rx="4" fill="rgba(232,201,122,.15)" stroke="rgba(232,201,122,.3)" stroke-width="1"/>
+      <text x="680" y="145" font-family="'Courier New',monospace" font-size="10" fill="#e8c97a" text-anchor="middle" font-weight="600">27.5% MPR</text>
+      <!-- bar chart right side -->
+      <rect x="700" y="260" width="18" height="80" rx="2" fill="rgba(255,107,107,.3)"/>
+      <rect x="724" y="240" width="18" height="100" rx="2" fill="rgba(232,201,122,.3)"/>
+      <rect x="748" y="220" width="18" height="120" rx="2" fill="rgba(79,255,176,.3)"/>
+      <!-- gradient overlay at bottom -->
+      <rect width="800" height="420" fill="url(#hg1)" opacity=".1"/>
+    </svg>
+    <div class="hc">
+      <span class="htag">Nigeria · Breaking</span>
+      <h1 class="hh">CBN Raises Benchmark Rate to 27.5% as Inflation Battle Intensifies Across West Africa</h1>
+      <div class="hm2"><span class="hs2">BusinessDay</span><span>38 mins ago</span><span>· 4 min read</span></div>
+    </div>
+  </div>
+  <div class="hs">
+    <!-- side 1: Tech -->
+    <div class="ss" onclick="openArticle('s1')">
+      <div class="ss-img">
+        <svg viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="50" fill="#0d1a2e"/><rect x="5" y="10" width="50" height="30" rx="3" fill="none" stroke="#7eb8ff" stroke-width="1" opacity=".5"/><circle cx="30" cy="25" r="8" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".7"/><line x1="22" y1="25" x2="38" y2="25" stroke="#4fffb0" stroke-width="1" opacity=".5"/><line x1="30" y1="17" x2="30" y2="33" stroke="#4fffb0" stroke-width="1" opacity=".5"/><text x="30" y="45" font-size="5" fill="#7eb8ff" text-anchor="middle" opacity=".7">FINTECH</text></svg>
+      </div>
+      <div class="ss-body">
+        <span class="st tech">Technology</span>
+        <div class="sh">Flutterwave Launches AI-Powered Cross-Border Payment Infrastructure for SMEs</div>
+        <div class="sf">TechCabal · 1h ago</div>
+      </div>
+    </div>
+    <!-- side 2: Sports -->
+    <div class="ss" onclick="openArticle('s2')">
+      <div class="ss-img">
+        <svg viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="50" fill="#0d2010"/><circle cx="30" cy="22" r="12" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".6"/><line x1="18" y1="22" x2="42" y2="22" stroke="#4fffb0" stroke-width="1" opacity=".4"/><path d="M24 14 Q30 10 36 14" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".4"/><path d="M24 30 Q30 34 36 30" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".4"/><rect x="8" y="18" width="4" height="8" rx="1" fill="#4fffb0" opacity=".3"/><rect x="48" y="18" width="4" height="8" rx="1" fill="#4fffb0" opacity=".3"/><text x="30" y="42" font-size="5" fill="#4fffb0" text-anchor="middle" opacity=".7">SPORTS</text></svg>
+      </div>
+      <div class="ss-body">
+        <span class="st sports">Sports</span>
+        <div class="sh">Super Eagles Coach Names 23-Man Squad Ahead of AFCON Qualifiers in Abuja</div>
+        <div class="sf">Punch Sports · 2h ago</div>
+      </div>
+    </div>
+    <!-- side 3: Markets -->
+    <div class="ss" onclick="openArticle('s3')">
+      <div class="ss-img">
+        <svg viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="50" fill="#1a1200"/><polyline points="5,40 15,35 25,38 35,28 45,22 55,15" fill="none" stroke="#e8c97a" stroke-width="2" opacity=".8"/><circle cx="55" cy="15" r="3" fill="#e8c97a" opacity=".9"/><rect x="8" y="42" width="6" height="6" rx="1" fill="#e8c97a" opacity=".3"/><rect x="18" y="38" width="6" height="10" rx="1" fill="#e8c97a" opacity=".4"/><rect x="28" y="32" width="6" height="16" rx="1" fill="#e8c97a" opacity=".5"/><rect x="38" y="26" width="6" height="22" rx="1" fill="#e8c97a" opacity=".6"/><text x="30" y="10" font-size="5" fill="#e8c97a" text-anchor="middle" opacity=".7">NGX</text></svg>
+      </div>
+      <div class="ss-body">
+        <span class="st markets">Markets</span>
+        <div class="sh">NGX Composite Index Breaches 104K — Dangote Cement Leads Gainers</div>
+        <div class="sf">Nairametrics · 3h ago</div>
+      </div>
+    </div>
+    <!-- side 4: World -->
+    <div class="ss" onclick="openArticle('s4')">
+      <div class="ss-img">
+        <svg viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="50" fill="#0a1020"/><circle cx="30" cy="25" r="16" fill="none" stroke="#7eb8ff" stroke-width="1" opacity=".5"/><ellipse cx="30" cy="25" rx="8" ry="16" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="14" y1="25" x2="46" y2="25" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="30" y1="9" x2="30" y2="41" stroke="#7eb8ff" stroke-width=".8" opacity=".3"/><circle cx="24" cy="22" r="2" fill="#7eb8ff" opacity=".6"/><circle cx="38" cy="28" r="1.5" fill="#7eb8ff" opacity=".5"/><text x="30" y="45" font-size="5" fill="#7eb8ff" text-anchor="middle" opacity=".6">WORLD</text></svg>
+      </div>
+      <div class="ss-body">
+        <span class="st">World</span>
+        <div class="sh">G7 Finance Ministers Agree on Framework to Regulate Sovereign AI Models</div>
+        <div class="sf">Reuters · 4h ago</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BODY ═══ -->
+<div class="bl">
+  <div class="feed">
+    <div class="fh">
+      <div class="ft">Live Feed <span class="last-upd" id="lastUpd">—</span></div>
+    </div>
+
+    <!-- BREAKING BANNER -->
+    <div class="bb" onclick="openArticle('b1')">
+      <span class="bl2">Breaking</span>
+      <span class="bt">Lagos State declares 48-hour transport sector emergency following fuel depot shutdown</span>
+    </div>
+
+    <!-- TOP STORIES TAB -->
+    <div class="tc active" id="tab-top">
+      <div class="nc" onclick="openArticle('a1')">
+        <div><div class="ctag nigeria">Nigeria</div><div class="ch">FG Unveils ₦2.1 Trillion Infrastructure Bond for Lagos–Kano Rail Corridor Expansion</div><div class="ce">Nigeria's largest single infrastructure issuance targets pension funds and DFIs with a 15-year tenor and 18.5% coupon.</div><div class="cf"><span class="csrc">Vanguard</span><span class="cdot">·</span><span>55 min ago</span><span class="cdot">·</span><span>5 min read</span></div></div>
+        <div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0d1a2e"/><rect x="10" y="50" width="12" height="16" rx="1" fill="#a78bfa" opacity=".5"/><rect x="26" y="40" width="12" height="26" rx="1" fill="#a78bfa" opacity=".6"/><rect x="42" y="28" width="12" height="38" rx="1" fill="#a78bfa" opacity=".7"/><rect x="58" y="35" width="12" height="31" rx="1" fill="#a78bfa" opacity=".6"/><rect x="74" y="20" width="12" height="46" rx="1" fill="#a78bfa" opacity=".8"/><polyline points="16,50 32,40 48,28 64,35 80,20" fill="none" stroke="#e8c97a" stroke-width="1.5" opacity=".7"/><text x="48" y="14" font-size="7" fill="#a78bfa" text-anchor="middle" opacity=".8">INFRASTRUCTURE</text></svg></div>
+      </div>
+      <div class="nc" onclick="openArticle('a2')">
+        <div><div class="ctag tech">Technology</div><div class="ch">OpenAI Partners with Three African Telecoms to Deploy Offline-First AI Models via USSD</div><div class="ce">Targets 600 million Africans without reliable internet using compressed models on feature phones.</div><div class="cf"><span class="csrc">TechCrunch</span><span class="cdot">·</span><span>1h 20m ago</span><span class="cdot">·</span><span>6 min read</span></div></div>
+        <div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0a1520"/><rect x="32" y="10" width="32" height="52" rx="4" fill="none" stroke="#7eb8ff" stroke-width="1.5" opacity=".5"/><rect x="38" y="16" width="20" height="30" rx="2" fill="rgba(126,184,255,.12)"/><circle cx="48" cy="54" r="3" fill="#7eb8ff" opacity=".5"/><circle cx="22" cy="30" r="8" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".5"/><text x="22" y="34" font-size="7" fill="#4fffb0" text-anchor="middle" font-weight="700">AI</text><line x1="30" y1="30" x2="38" y2="30" stroke="#4fffb0" stroke-width="1" opacity=".5" stroke-dasharray="2,2"/><circle cx="70" cy="30" r="6" fill="rgba(232,201,122,.2)" stroke="#e8c97a" stroke-width="1" opacity=".6"/><line x1="58" y1="30" x2="64" y2="30" stroke="#e8c97a" stroke-width="1" opacity=".4" stroke-dasharray="2,2"/></svg></div>
+      </div>
+      <div class="nc" onclick="openArticle('a3')">
+        <div><div class="ctag sports">Sports</div><div class="ch">Victor Osimhen Bags Hat-Trick as Al-Ahli Beat Al-Hilal 4–1 in Saudi Pro League Showdown</div><div class="ce">Transfer speculation reignites with Chelsea and Arsenal monitoring the Nigerian striker.</div><div class="cf"><span class="csrc">ESPN</span><span class="cdot">·</span><span>2h ago</span><span class="cdot">·</span><span>3 min read</span></div></div>
+        <div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0d2010"/><rect x="8" y="20" width="80" height="40" rx="2" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".3"/><line x1="48" y1="20" x2="48" y2="60" stroke="#4fffb0" stroke-width="1" opacity=".3"/><circle cx="48" cy="40" r="10" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".4"/><circle cx="48" cy="40" r="3" fill="#4fffb0" opacity=".7"/><text x="20" y="37" font-size="18" fill="#4fffb0" opacity=".6" text-anchor="middle" font-weight="900">4</text><text x="76" y="37" font-size="18" fill="rgba(255,107,107,.6)" text-anchor="middle" font-weight="900">1</text><text x="48" y="68" font-size="5" fill="#4fffb0" text-anchor="middle" opacity=".6">AL-AHLI VS AL-HILAL</text></svg></div>
+      </div>
+      <div class="nc" onclick="openArticle('a4')">
+        <div><div class="ctag world">World</div><div class="ch">IMF Upgrades Sub-Saharan Africa Growth Forecast to 4.7% for 2026</div><div class="ce">Nigeria, Ethiopia, and Kenya lead the upward revision amid fiscal consolidation and strong agricultural output.</div><div class="cf"><span class="csrc">Bloomberg</span><span class="cdot">·</span><span>3h ago</span><span class="cdot">·</span><span>7 min read</span></div></div>
+        <div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0a1020"/><circle cx="48" cy="38" r="24" fill="none" stroke="#7eb8ff" stroke-width="1.2" opacity=".5"/><ellipse cx="48" cy="38" rx="12" ry="24" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".35"/><line x1="24" y1="38" x2="72" y2="38" stroke="#7eb8ff" stroke-width=".8" opacity=".35"/><ellipse cx="48" cy="38" rx="24" ry="8" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".25"/><circle cx="40" cy="32" r="3" fill="#4fffb0" opacity=".7"/><circle cx="55" cy="40" r="2" fill="#e8c97a" opacity=".7"/><circle cx="44" cy="45" r="2" fill="#a78bfa" opacity=".7"/><text x="48" y="10" font-size="6" fill="#7eb8ff" text-anchor="middle" opacity=".6">SUB-SAHARAN AFRICA</text></svg></div>
+      </div>
+      <div class="nc" onclick="openArticle('a5')">
+        <div><div class="ctag markets">Markets</div><div class="ch">Zenith Bank Posts ₦890 Billion Pre-Tax Profit for Q1 2026 — Analysts Call it Sector-Defining</div><div class="ce">FX income and digital banking drove a 22% beat over consensus, sending shares to an all-time high.</div><div class="cf"><span class="csrc">Nairametrics</span><span class="cdot">·</span><span>4h ago</span><span class="cdot">·</span><span>4 min read</span></div></div>
+        <div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#100d00"/><polyline points="8,60 22,55 36,58 50,45 64,38 80,25 92,18" fill="none" stroke="#e8c97a" stroke-width="2.5" opacity=".8"/><polygon points="8,60 22,55 36,58 50,45 64,38 80,25 92,18 92,70 8,70" fill="rgba(232,201,122,.08)"/><circle cx="92" cy="18" r="4" fill="#e8c97a" opacity=".9"/><circle cx="92" cy="18" r="8" fill="none" stroke="#e8c97a" stroke-width="1" opacity=".4"/><text x="48" y="10" font-size="6" fill="#e8c97a" text-anchor="middle" opacity=".7">ZENITH BANK — ATH</text></svg></div>
+      </div>
+    </div>
+
+    <!-- NIGERIA TAB -->
+    <div class="tc" id="tab-nigeria">
+      <div class="nc" onclick="openArticle('n1')"><div><div class="ctag nigeria">Nigeria</div><div class="ch">Senate Passes Petroleum Revenue Transparency Bill After Three Years of Deadlock</div><div class="ce">Bill mandates real-time public disclosure of NNPCL revenue; passed 89–12 after civil society amendments.</div><div class="cf"><span class="csrc">Channels TV</span><span class="cdot">·</span><span>1h ago</span><span class="cdot">·</span><span>4 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#1a0a00"/><rect x="20" y="20" width="56" height="40" rx="3" fill="none" stroke="#f4a261" stroke-width="1.2" opacity=".5"/><rect x="28" y="28" width="40" height="6" rx="1" fill="#f4a261" opacity=".3"/><rect x="28" y="38" width="30" height="4" rx="1" fill="#f4a261" opacity=".2"/><rect x="28" y="46" width="36" height="4" rx="1" fill="#f4a261" opacity=".2"/><rect x="42" y="14" width="12" height="8" rx="1" fill="#f4a261" opacity=".4"/><text x="48" y="68" font-size="5" fill="#f4a261" text-anchor="middle" opacity=".6">SENATE BILL</text></svg></div></div>
+      <div class="nc" onclick="openArticle('n2')"><div><div class="ctag nigeria">Nigeria</div><div class="ch">Dangote Refinery Reaches 70% Capacity as PMS Output Hits 30 Million Litres Daily</div><div class="ce">Milestone expected to stabilise pump prices and reduce Nigeria's annual fuel import bill by up to $5 billion.</div><div class="cf"><span class="csrc">Punch</span><span class="cdot">·</span><span>2h ago</span><span class="cdot">·</span><span>5 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#1a0800"/><rect x="30" y="20" width="36" height="44" rx="4" fill="none" stroke="#f97316" stroke-width="1.5" opacity=".5"/><rect x="36" y="26" width="24" height="32" rx="2" fill="rgba(249,115,22,.12)"/><rect x="36" y="26" width="24" height="22" rx="2" fill="rgba(249,115,22,.2)"/><text x="48" y="42" font-size="7" fill="#f97316" text-anchor="middle" opacity=".9" font-weight="700">70%</text><rect x="20" y="36" width="10" height="20" rx="2" fill="#f97316" opacity=".3"/><rect x="66" y="30" width="10" height="26" rx="2" fill="#f97316" opacity=".3"/><text x="48" y="68" font-size="5" fill="#f97316" text-anchor="middle" opacity=".6">DANGOTE REFINERY</text></svg></div></div>
+      <div class="nc" onclick="openArticle('n3')"><div><div class="ctag nigeria">Nigeria</div><div class="ch">Lagos Smart City Blueprint Gets Federal Backing with ₦400 Billion Commitment Over 5 Years</div><div class="ce">Covers broadband, 5G rollout, digital public services, and a new technology corridor from Lagos Island to Epe.</div><div class="cf"><span class="csrc">BusinessDay</span><span class="cdot">·</span><span>3h ago</span><span class="cdot">·</span><span>6 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#001020"/><rect x="10" y="30" width="14" height="36" rx="1" fill="#7eb8ff" opacity=".3"/><rect x="28" y="22" width="14" height="44" rx="1" fill="#7eb8ff" opacity=".4"/><rect x="46" y="14" width="14" height="52" rx="1" fill="#7eb8ff" opacity=".5"/><rect x="64" y="26" width="14" height="40" rx="1" fill="#7eb8ff" opacity=".4"/><circle cx="80" cy="20" r="4" fill="#4fffb0" opacity=".7"/><circle cx="80" cy="20" r="8" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".3"/><text x="48" y="10" font-size="6" fill="#7eb8ff" text-anchor="middle" opacity=".6">SMART CITY</text></svg></div></div>
+    </div>
+
+    <!-- WORLD TAB -->
+    <div class="tc" id="tab-world">
+      <div class="nc" onclick="openArticle('w1')"><div><div class="ctag world">World</div><div class="ch">US Treasury and EU Agree on Joint Sanctions Framework Targeting AI-Enabled Financial Crime</div><div class="ce">Covers deepfake fraud, synthetic identity theft, and algorithmic commodity market manipulation.</div><div class="cf"><span class="csrc">Reuters</span><span class="cdot">·</span><span>45 min ago</span><span class="cdot">·</span><span>5 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0a0a20"/><circle cx="30" cy="36" r="18" fill="none" stroke="#7eb8ff" stroke-width="1.2" opacity=".5"/><circle cx="66" cy="36" r="18" fill="none" stroke="#e8c97a" stroke-width="1.2" opacity=".5"/><path d="M48 22 Q52 36 48 50" fill="rgba(126,184,255,.15)" stroke="none"/><path d="M48 22 Q44 36 48 50" fill="rgba(232,201,122,.15)" stroke="none"/><text x="30" y="40" font-size="7" fill="#7eb8ff" text-anchor="middle" opacity=".8" font-weight="700">US</text><text x="66" y="40" font-size="7" fill="#e8c97a" text-anchor="middle" opacity=".8" font-weight="700">EU</text></svg></div></div>
+      <div class="nc" onclick="openArticle('w2')"><div><div class="ctag world">World</div><div class="ch">China's $1.2 Trillion Stimulus Sends Asian Markets Surging to Multi-Year Highs</div><div class="ce">Shanghai Composite +4.7%, Hang Seng +5.2% — largest single-day gain since November 2022.</div><div class="cf"><span class="csrc">BBC</span><span class="cdot">·</span><span>2h ago</span><span class="cdot">·</span><span>7 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#1a0a00"/><polyline points="8,60 20,52 32,50 44,42 56,38 68,28 80,20 92,14" fill="none" stroke="#ff6b6b" stroke-width="2" opacity=".8"/><polygon points="8,60 20,52 32,50 44,42 56,38 68,28 80,20 92,14 92,70 8,70" fill="rgba(255,107,107,.1)"/><text x="48" y="10" font-size="6" fill="#ff6b6b" text-anchor="middle" opacity=".7">ASIA MARKETS SURGE</text><circle cx="92" cy="14" r="4" fill="#ff6b6b" opacity=".8"/></svg></div></div>
+    </div>
+
+    <!-- MARKETS TAB -->
+    <div class="tc" id="tab-markets">
+      <div class="nc" onclick="openArticle('m1')"><div><div class="ctag markets">Markets</div><div class="ch">NGX Records Highest Foreign Portfolio Inflow in 18 Months at $620M in April</div><div class="ce">Gulf sovereign wealth funds and improved macro stability drove the strongest monthly foreign inflow since Oct 2024.</div><div class="cf"><span class="csrc">Nairametrics</span><span class="cdot">·</span><span>30 min ago</span><span class="cdot">·</span><span>5 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#100d00"/><rect x="8" y="50" width="10" height="16" rx="1" fill="#e8c97a" opacity=".3"/><rect x="22" y="44" width="10" height="22" rx="1" fill="#e8c97a" opacity=".4"/><rect x="36" y="36" width="10" height="30" rx="1" fill="#e8c97a" opacity=".5"/><rect x="50" y="42" width="10" height="24" rx="1" fill="#e8c97a" opacity=".45"/><rect x="64" y="30" width="10" height="36" rx="1" fill="#e8c97a" opacity=".6"/><rect x="78" y="20" width="10" height="46" rx="1" fill="#e8c97a" opacity=".8"/><text x="48" y="14" font-size="6" fill="#e8c97a" text-anchor="middle" opacity=".7">PORTFOLIO INFLOWS</text></svg></div></div>
+      <div class="nc" onclick="openArticle('m2')"><div><div class="ctag markets">Markets</div><div class="ch">GTCO, Access Holdings Lead Tier-1 Bank Earnings Season With Double-Digit Revenue Growth</div><div class="ce">Both banks beat Q1 consensus on retail lending, trade finance, and digital fees.</div><div class="cf"><span class="csrc">BusinessDay</span><span class="cdot">·</span><span>1h 40m ago</span><span class="cdot">·</span><span>4 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0a1020"/><rect x="14" y="30" width="28" height="36" rx="2" fill="rgba(126,184,255,.15)" stroke="#7eb8ff" stroke-width="1" opacity=".5"/><rect x="54" y="22" width="28" height="44" rx="2" fill="rgba(79,255,176,.12)" stroke="#4fffb0" stroke-width="1" opacity=".5"/><text x="28" y="50" font-size="8" fill="#7eb8ff" text-anchor="middle" opacity=".8" font-weight="700">GTCO</text><text x="68" y="42" font-size="7" fill="#4fffb0" text-anchor="middle" opacity=".8" font-weight="700">ACCESS</text><text x="48" y="10" font-size="6" fill="#e8c97a" text-anchor="middle" opacity=".7">TIER-1 BANKS</text></svg></div></div>
+    </div>
+
+    <!-- TECH TAB -->
+    <div class="tc" id="tab-tech">
+      <div class="nc" onclick="openArticle('t1')"><div><div class="ctag tech">Technology</div><div class="ch">Andela Expands Pan-African Engineering Talent Network to 12 New Countries in Francophone Africa</div><div class="ce">$75M Series E backs expansion into Côte d'Ivoire, Senegal, Cameroon, and 9 more markets.</div><div class="cf"><span class="csrc">TechCabal</span><span class="cdot">·</span><span>1h ago</span><span class="cdot">·</span><span>5 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0a1020"/><circle cx="48" cy="36" r="20" fill="none" stroke="#7eb8ff" stroke-width="1.2" opacity=".4"/><circle cx="48" cy="36" r="4" fill="#4fffb0" opacity=".8"/><circle cx="28" cy="28" r="3" fill="#7eb8ff" opacity=".7"/><circle cx="68" cy="28" r="3" fill="#7eb8ff" opacity=".7"/><circle cx="28" cy="44" r="3" fill="#7eb8ff" opacity=".6"/><circle cx="68" cy="44" r="3" fill="#7eb8ff" opacity=".6"/><circle cx="48" cy="16" r="3" fill="#e8c97a" opacity=".7"/><circle cx="48" cy="56" r="3" fill="#e8c97a" opacity=".7"/><line x1="48" y1="32" x2="28" y2="28" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="48" y1="32" x2="68" y2="28" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="48" y1="40" x2="28" y2="44" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="48" y1="40" x2="68" y2="44" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="48" y1="32" x2="48" y2="16" stroke="#e8c97a" stroke-width=".8" opacity=".4"/><line x1="48" y1="40" x2="48" y2="56" stroke="#e8c97a" stroke-width=".8" opacity=".4"/></svg></div></div>
+      <div class="nc" onclick="openArticle('t2')"><div><div class="ctag tech">Technology</div><div class="ch">Apple Vision Pro 2 Arrives in Nigeria Through Authorised Resellers — Priced at ₦4.8 Million</div><div class="ce">iStore and Slot offer demos and trade-ins in Apple's most direct Nigerian premium push yet.</div><div class="cf"><span class="csrc">The Verge</span><span class="cdot">·</span><span>3h ago</span><span class="cdot">·</span><span>3 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#050510"/><rect x="24" y="14" width="48" height="44" rx="8" fill="none" stroke="#c8c5c0" stroke-width="1.5" opacity=".5"/><rect x="30" y="20" width="36" height="32" rx="4" fill="rgba(200,197,192,.08)"/><circle cx="48" cy="36" r="8" fill="none" stroke="#7eb8ff" stroke-width="1.2" opacity=".7"/><circle cx="48" cy="36" r="3" fill="#7eb8ff" opacity=".5"/><text x="48" y="66" font-size="5" fill="#c8c5c0" text-anchor="middle" opacity=".5">VISION PRO 2</text></svg></div></div>
+    </div>
+
+    <!-- SPORTS TAB -->
+    <div class="tc" id="tab-sports">
+      <div class="nc" onclick="openArticle('sp1')"><div><div class="ctag sports">Sports</div><div class="ch">Super Falcons Qualify for 2027 FIFA Women's World Cup With Two Games to Spare</div><div class="ce">3–0 win over South Africa; Oshoala, Ajibade brace, Nnadozie penalty save confirm Nigeria as first African qualifier.</div><div class="cf"><span class="csrc">ESPN</span><span class="cdot">·</span><span>2h ago</span><span class="cdot">·</span><span>4 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0d2010"/><rect x="10" y="22" width="76" height="38" rx="2" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".3"/><line x1="48" y1="22" x2="48" y2="60" stroke="#4fffb0" stroke-width="1" opacity=".3"/><circle cx="48" cy="41" r="10" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".4"/><circle cx="10" cy="41" r="4" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".3"/><circle cx="86" cy="41" r="4" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".3"/><text x="24" y="38" font-size="16" fill="#4fffb0" text-anchor="middle" opacity=".8" font-weight="900">3</text><text x="72" y="38" font-size="16" fill="rgba(255,107,107,.7)" text-anchor="middle" font-weight="900">0</text><text x="48" y="68" font-size="4.5" fill="#4fffb0" text-anchor="middle" opacity=".6">SUPER FALCONS</text></svg></div></div>
+      <div class="nc" onclick="openArticle('sp2')"><div><div class="ctag sports">Sports</div><div class="ch">Formula 1: Ferrari Dominates Monaco Grand Prix as Leclerc Claims Home Victory Again</div><div class="ce">Leclerc's fourth Monaco win; Verstappen third after controversial late pit-stop call.</div><div class="cf"><span class="csrc">BBC Sport</span><span class="cdot">·</span><span>4h ago</span><span class="cdot">·</span><span>5 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#200008"/><path d="M8 55 Q25 30 48 28 Q71 26 88 20" fill="none" stroke="#ff6b6b" stroke-width="2.5" opacity=".8"/><polygon points="8,55 25,30 48,28 71,26 88,20 88,70 8,70" fill="rgba(255,107,107,.1)"/><circle cx="48" cy="28" r="5" fill="#ff6b6b" opacity=".6"/><text x="70" y="16" font-size="6" fill="#e8c97a" text-anchor="middle" opacity=".8" font-weight="700">1ST</text><rect x="38" y="55" width="20" height="10" rx="2" fill="#e8c97a" opacity=".3"/><text x="48" y="63" font-size="5.5" fill="#e8c97a" text-anchor="middle" font-weight="700">LECLERC</text></svg></div></div>
+    </div>
+
+    <!-- POLITICS TAB -->
+    <div class="tc" id="tab-politics">
+      <div class="nc" onclick="openArticle('p1')"><div><div class="ctag politics">Politics</div><div class="ch">APC and PDP Face Factional Contests in Four Key States Ahead of 2027 Elections</div><div class="ce">Anambra, Osun, Oyo, Kaduna as flashpoints; INEC warns on delegate manipulation allegations.</div><div class="cf"><span class="csrc">Vanguard</span><span class="cdot">·</span><span>1h ago</span><span class="cdot">·</span><span>6 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#100800"/><circle cx="48" cy="36" r="26" fill="none" stroke="#f4a261" stroke-width="1" opacity=".4"/><line x1="22" y1="36" x2="74" y2="36" stroke="#f4a261" stroke-width="1" opacity=".3"/><rect x="30" y="20" width="36" height="32" rx="2" fill="none" stroke="#f4a261" stroke-width="1" opacity=".3"/><text x="48" y="42" font-size="8" fill="#f4a261" text-anchor="middle" opacity=".7" font-weight="700">2027</text><text x="48" y="10" font-size="5.5" fill="#f4a261" text-anchor="middle" opacity=".6">ELECTIONS</text></svg></div></div>
+      <div class="nc" onclick="openArticle('p2')"><div><div class="ctag politics">Politics</div><div class="ch">ECOWAS Summit Yields New Regional Security Pact as Sahel Tensions Persist</div><div class="ce">15 heads of state agree to 5,000-troop rapid-response force and shared Sahel intelligence architecture.</div><div class="cf"><span class="csrc">Channels TV</span><span class="cdot">·</span><span>3h ago</span><span class="cdot">·</span><span>5 min read</span></div></div><div class="ci"><svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="#0a1020"/><circle cx="48" cy="36" r="22" fill="none" stroke="#7eb8ff" stroke-width="1.2" opacity=".5"/><path d="M28 52 Q32 40 28 28" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><path d="M68 52 Q64 40 68 28" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".4"/><line x1="26" y1="36" x2="70" y2="36" stroke="#7eb8ff" stroke-width=".8" opacity=".35"/><circle cx="38" cy="30" r="2.5" fill="#4fffb0" opacity=".7"/><circle cx="55" cy="42" r="2.5" fill="#4fffb0" opacity=".7"/><circle cx="44" cy="44" r="2" fill="#e8c97a" opacity=".6"/><text x="48" y="8" font-size="5.5" fill="#7eb8ff" text-anchor="middle" opacity=".6">ECOWAS</text></svg></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <div class="sb">
+    <!-- mini chart -->
+    <div class="chart-widget">
+      <div class="cw-header">
+        <span class="cw-title">NGX ASI · Today</span>
+        <span class="cw-badge">▲ +1.24%</span>
+      </div>
+      <svg viewBox="0 0 240 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
+        <defs>
+          <linearGradient id="cg1" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#e8c97a" stop-opacity=".3"/>
+            <stop offset="100%" stop-color="#e8c97a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <polyline points="0,55 20,52 40,58 60,48 80,45 100,42 120,38 140,40 160,34 180,30 200,26 220,20 240,16" fill="none" stroke="#e8c97a" stroke-width="2" opacity=".9"/>
+        <polygon points="0,55 20,52 40,58 60,48 80,45 100,42 120,38 140,40 160,34 180,30 200,26 220,20 240,16 240,70 0,70" fill="url(#cg1)"/>
+        <circle cx="240" cy="16" r="3" fill="#e8c97a"/>
+        <line x1="0" y1="65" x2="240" y2="65" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <div class="sbs">
+      <div class="sbt">Markets Snapshot</div>
+      <div class="mr"><div><div class="mn">NGX ASI</div><div class="ml">Nigerian Exchange</div></div><div class="mrr"><div class="mv">104,232</div><div class="mc up">▲ +1.24%</div></div></div>
+      <div class="mr"><div><div class="mn">USD/NGN</div><div class="ml">Spot Rate</div></div><div class="mrr"><div class="mv">₦1,614.5</div><div class="mc down">▼ −0.31%</div></div></div>
+      <div class="mr"><div><div class="mn">BTC/USD</div><div class="ml">Bitcoin</div></div><div class="mrr"><div class="mv">$103,840</div><div class="mc up">▲ +2.79%</div></div></div>
+      <div class="mr"><div><div class="mn">BRENT</div><div class="ml">Crude Oil</div></div><div class="mrr"><div class="mv">$74.20</div><div class="mc down">▼ −0.94%</div></div></div>
+      <div class="mr"><div><div class="mn">S&amp;P 500</div><div class="ml">US Equities</div></div><div class="mrr"><div class="mv">5,784</div><div class="mc up">▲ +0.62%</div></div></div>
+    </div>
+
+    <div class="sbs">
+      <div class="sbt">Trending Now</div>
+      <div class="tri" onclick="openArticle('hero')"><span class="trn">01</span><span class="trt">CBN rate hike and naira outlook</span></div>
+      <div class="tri" onclick="openArticle('a3')"><span class="trn">02</span><span class="trt">Osimhen hat-trick — transfer latest</span></div>
+      <div class="tri" onclick="openArticle('t1')"><span class="trn">03</span><span class="trt">Andela Francophone Africa expansion</span></div>
+      <div class="tri" onclick="openArticle('a5')"><span class="trn">04</span><span class="trt">Zenith Bank Q1 all-time high</span></div>
+      <div class="tri" onclick="openArticle('n2')"><span class="trn">05</span><span class="trt">Dangote Refinery 70% milestone</span></div>
+    </div>
+
+    <div class="sbs">
+      <div class="sbt">Sources</div>
+      <div class="sw"><span class="stg">Punch</span><span class="stg">Channels TV</span><span class="stg">Vanguard</span><span class="stg">BusinessDay</span><span class="stg">TechCabal</span><span class="stg">Nairametrics</span><span class="stg">Reuters</span><span class="stg">Bloomberg</span><span class="stg">ESPN</span><span class="stg">BBC</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ARTICLE MODAL ═══ -->
+<div class="mo" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="md">
+    <div class="mdi" id="mImg"></div>
+    <div class="mdb">
+      <div class="mdt"><div class="mcl" onclick="closeModal()">✕</div></div>
+      <span class="mtg" id="mTag"></span>
+      <h2 class="mh" id="mHead"></h2>
+      <div class="mm"><span class="msrc" id="mSrc"></span><span id="mTime"></span><span id="mRead"></span></div>
+      <div class="mt" id="mBody"></div>
+    </div>
+    <div class="mf">
+      <button class="ma bg2" onclick="closeModal()">← Back to Feed</button>
+      <a class="ma bp" id="readFullBtn" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block">Read Full Article ↗</a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══ LAGOS CLOCK ═══ */
+function updateClock(){
+  const now = new Date();
+  const lagos = new Date(now.toLocaleString('en-US',{timeZone:'Africa/Lagos'}));
+  const h = String(lagos.getHours()).padStart(2,'0');
+  const m = String(lagos.getMinutes()).padStart(2,'0');
+  const s = String(lagos.getSeconds()).padStart(2,'0');
+  document.getElementById('lagosClock').textContent = h+':'+m+':'+s;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ═══ LAST UPDATED ═══ */
+function updateTimestamp(label){
+  const now = new Date();
+  const lagos = new Date(now.toLocaleString('en-US',{timeZone:'Africa/Lagos'}));
+  const h = String(lagos.getHours()).padStart(2,'0');
+  const m = String(lagos.getMinutes()).padStart(2,'0');
+  document.getElementById('lastUpd').textContent = (label||'Updated')+' '+h+':'+m+' WAT';
+}
+updateTimestamp('Loading');
+
+/* ═══ CATEGORY TAG COLOURS ═══ */
+const catClass = {nigeria:'nigeria',world:'world',tech:'tech',sports:'sports',markets:'markets',politics:'politics',business:'markets'};
+
+/* ═══ SKELETON CARD ═══ */
+function skeletonCard(){
+  return `<div class="nc" style="opacity:.4;pointer-events:none">
+    <div>
+      <div style="width:60px;height:9px;background:var(--surface2);border-radius:4px;margin-bottom:8px"></div>
+      <div style="width:100%;height:14px;background:var(--surface2);border-radius:4px;margin-bottom:6px"></div>
+      <div style="width:80%;height:14px;background:var(--surface2);border-radius:4px;margin-bottom:10px"></div>
+      <div style="width:50%;height:10px;background:var(--surface2);border-radius:4px"></div>
+    </div>
+    <div class="ci" style="background:var(--surface2)"></div>
+  </div>`;
+}
+
+/* ═══ RENDER LIVE ARTICLES ═══ */
+function articleImgSVG(cat){
+  const palettes={nigeria:'#a78bfa,#0d1a2e',tech:'#7eb8ff,#0a1520',sports:'#4fffb0,#0d2010',markets:'#e8c97a,#100d00',politics:'#f4a261,#100800',world:'#7eb8ff,#0a0a20',business:'#e8c97a,#100d00'};
+  const [col,bg] = (palettes[cat]||palettes.world).split(',');
+  return `<svg viewBox="0 0 96 72" xmlns="http://www.w3.org/2000/svg"><rect width="96" height="72" fill="${bg}"/>
+    <polyline points="8,60 25,50 42,54 59,42 76,35 92,24" fill="none" stroke="${col}" stroke-width="2" opacity=".7"/>
+    <polygon points="8,60 25,50 42,54 59,42 76,35 92,24 92,72 8,72" fill="${col}" opacity=".08"/>
+    <circle cx="92" cy="24" r="4" fill="${col}" opacity=".8"/>
+    <text x="48" y="12" font-size="6" fill="${col}" text-anchor="middle" opacity=".6">${(cat||'NEWS').toUpperCase()}</text>
+  </svg>`;
+}
+
+function renderCards(articles, containerId){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(!articles || articles.length === 0){
+    el.innerHTML = '<p style="color:var(--muted);padding:20px 0;font-size:13px">No articles available right now.</p>';
+    return;
+  }
+  el.innerHTML = articles.map(a => {
+    const cat  = catClass[a.category] || 'world';
+    const safe = s => (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<div class="nc" onclick="openLiveArticle(${JSON.stringify(JSON.stringify(a))})">
+      <div>
+        <div class="ctag ${cat}">${safe(a.category||'news')}</div>
+        <div class="ch">${safe(a.title)}</div>
+        <div class="ce">${safe(a.excerpt)}</div>
+        <div class="cf">
+          <span class="csrc">${safe(a.source)}</span>
+          <span class="cdot">·</span>
+          <span>${safe(a.timeAgo)}</span>
+        </div>
+      </div>
+      <div class="ci">${articleImgSVG(a.category)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══ LIVE ARTICLE MODAL ═══ */
+function openLiveArticle(jsonStr){
+  const a = JSON.parse(jsonStr);
+  setReadBtn(a.url);
+  const palettes={nigeria:'#a78bfa,#0d1020',tech:'#7eb8ff,#0a1520',sports:'#4fffb0,#0d2010',markets:'#e8c97a,#100d00',politics:'#f4a261,#100800',world:'#7eb8ff,#0a0a20',business:'#e8c97a,#100d00'};
+  const [col,bg] = (palettes[a.category]||palettes.world).split(',');
+  const svg = `<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg">
+    <rect width="760" height="240" fill="${bg}"/>
+    <g stroke="rgba(255,255,255,.04)" stroke-width="1">
+      <line x1="0" y1="60" x2="760" y2="60"/><line x1="0" y1="120" x2="760" y2="120"/><line x1="0" y1="180" x2="760" y2="180"/>
+      <line x1="190" y1="0" x2="190" y2="240"/><line x1="380" y1="0" x2="380" y2="240"/><line x1="570" y1="0" x2="570" y2="240"/>
+    </g>
+    <polyline points="30,200 120,178 210,186 300,162 390,148 480,128 570,108 660,88 740,68" fill="none" stroke="${col}" stroke-width="3" opacity=".8"/>
+    <polygon points="30,200 120,178 210,186 300,162 390,148 480,128 570,108 660,88 740,68 740,240 30,240" fill="${col}" opacity=".08"/>
+    <circle cx="740" cy="68" r="7" fill="${col}" opacity=".9"/>
+    <circle cx="740" cy="68" r="14" fill="none" stroke="${col}" stroke-width="1.5" opacity=".35"/>
+    <text x="380" y="50" font-size="72" fill="${col}" font-weight="900" text-anchor="middle" opacity=".04" font-family="Georgia">${(a.source||'').toUpperCase()}</text>
+  </svg>`;
+  document.getElementById('mTag').textContent  = a.category || 'News';
+  document.getElementById('mHead').textContent = a.title || '';
+  document.getElementById('mSrc').textContent  = a.source || '';
+  document.getElementById('mTime').textContent = a.timeAgo || '';
+  document.getElementById('mRead').textContent = '';
+  document.getElementById('mBody').innerHTML   = `<p>${(a.excerpt||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`;
+  document.getElementById('mImg').innerHTML    = svg;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+/* ═══ FETCH FROM API ═══ */
+let liveMode = false;
+
+async function loadTab(tabId, category){
+  const el = document.getElementById('tab-'+tabId);
+  if(!el) return;
+  // Show skeletons
+  el.innerHTML = [1,2,3,4,5].map(skeletonCard).join('');
+  try {
+    const url = category === 'top' ? '/api/news?limit=10' : `/api/news/${category}?limit=10`;
+    const res  = await fetch(url);
+    if(!res.ok) throw new Error('API error '+res.status);
+    const data = await res.json();
+    if(data.ok && data.articles && data.articles.length > 0){
+      renderCards(data.articles, 'tab-'+tabId);
+      liveMode = true;
+    } else {
+      // leave static content if API returns empty
+      el.innerHTML = '<p style="color:var(--muted);padding:20px 0;font-size:13px">Live feed unavailable — showing cached stories.</p>';
+    }
+  } catch(e){
+    console.warn('API not available, using static content:', e.message);
+    // Static fallback: leave the original content untouched (don't wipe it)
+  }
+}
+
+/* ═══ FETCH STATUS & UPDATE HEADER ═══ */
+async function fetchStatus(){
+  try {
+    const res  = await fetch('/api/status');
+    const data = await res.json();
+    if(data.ok && data.fetchedAt){
+      const d = new Date(data.fetchedAt);
+      const lagos = new Date(d.toLocaleString('en-US',{timeZone:'Africa/Lagos'}));
+      const h = String(lagos.getHours()).padStart(2,'0');
+      const m = String(lagos.getMinutes()).padStart(2,'0');
+      document.getElementById('lastUpd').textContent = `Live · ${data.articlesCount} stories · ${h}:${m} WAT`;
+    }
+  } catch(e){ /* server not running */ }
+}
+
+/* ═══ REFRESH BUTTON — REAL ═══ */
+document.getElementById('refreshBtn').addEventListener('click', async function(){
+  const btn = this;
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  try {
+    // Trigger server-side refresh
+    await fetch('/api/refresh', { method:'POST' });
+    // Re-load currently active tab
+    const activeTab = document.querySelector('.tabs a.active');
+    const tabId = activeTab ? activeTab.dataset.tab : 'top';
+    const catMap = {top:'top',nigeria:'nigeria',world:'world',markets:'markets',tech:'tech',sports:'sports',politics:'politics'};
+    await loadTab(tabId, catMap[tabId]||tabId);
+    await fetchStatus();
+    // Badge
+    const ft = document.querySelector('.ft');
+    const ex = ft.querySelector('.new-badge');
+    if(ex) ex.remove();
+    const badge = document.createElement('span');
+    badge.className = 'new-badge';
+    badge.textContent = '✓ Updated';
+    ft.appendChild(badge);
+    setTimeout(()=>badge.remove(), 3000);
+  } catch(e){
+    updateTimestamp('Refreshed');
+  } finally {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+  }
+});
+
+/* ═══ AUTO-REFRESH EVERY 15 MINUTES ═══ */
+setInterval(async ()=>{
+  const activeTab = document.querySelector('.tabs a.active');
+  const tabId = activeTab ? activeTab.dataset.tab : 'top';
+  await loadTab(tabId, tabId);
+  await fetchStatus();
+}, 15 * 60 * 1000);
+
+/* ═══ INITIAL LOAD ═══ */
+(async ()=>{
+  await loadTab('top','top');
+  await fetchStatus();
+  updateTimestamp('Ready');
+})();
+
+/* ═══ TABS ═══ */
+document.getElementById('navTabs').addEventListener('click',function(e){
+  e.preventDefault();
+  const a = e.target.closest('a[data-tab]');
+  if(!a) return;
+  document.querySelectorAll('.tabs a').forEach(x=>x.classList.remove('active'));
+  a.classList.add('active');
+  document.querySelectorAll('.tc').forEach(x=>x.classList.remove('active'));
+  const t = document.getElementById('tab-'+a.dataset.tab);
+  if(t) t.classList.add('active');
+});
+
+/* ═══ THEME ═══ */
+document.getElementById('themeBtn').addEventListener('click',function(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  this.textContent = dark?'☀':'☽';
+});
+
+/* ═══ ARTICLE DATA ═══ */
+const SVGs = {
+  hero:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="mg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0d1a2e"/><stop offset="100%" stop-color="#0a0a14"/></linearGradient><linearGradient id="mg2" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#e8c97a" stop-opacity=".25"/><stop offset="100%" stop-color="#e8c97a" stop-opacity="0"/></linearGradient></defs><rect width="760" height="240" fill="url(#mg1)"/><g stroke="rgba(255,255,255,.04)" stroke-width="1"><line x1="0" y1="60" x2="760" y2="60"/><line x1="0" y1="120" x2="760" y2="120"/><line x1="0" y1="180" x2="760" y2="180"/></g><polyline points="30,200 100,185 170,195 240,170 310,155 380,140 450,120 520,105 590,90 660,72 730,55" fill="none" stroke="#e8c97a" stroke-width="3" opacity=".85"/><polygon points="30,200 100,185 170,195 240,170 310,155 380,140 450,120 520,105 590,90 660,72 730,55 730,240 30,240" fill="url(#mg2)"/><circle cx="730" cy="55" r="6" fill="#e8c97a"/><circle cx="730" cy="55" r="12" fill="none" stroke="#e8c97a" stroke-width="1.5" opacity=".4"/><text x="380" y="50" font-size="80" fill="rgba(232,201,122,.05)" font-family="Georgia" font-weight="900" text-anchor="middle">₦</text><rect x="580" y="30" width="90" height="24" rx="5" fill="rgba(232,201,122,.15)" stroke="rgba(232,201,122,.4)" stroke-width="1"/><text x="625" y="46" font-size="11" fill="#e8c97a" text-anchor="middle" font-weight="700">27.5% MPR</text></svg>`,
+  chart_rate:`<svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#ff6b6b" stop-opacity=".3"/><stop offset="100%" stop-color="#ff6b6b" stop-opacity="0"/></linearGradient></defs><rect width="680" height="200" fill="#0d0d0f" rx="4"/><text x="20" y="24" font-size="11" fill="#999098" font-family="DM Sans,sans-serif">Nigeria Benchmark Rate — 2022 to 2026</text><g stroke="rgba(255,255,255,.05)" stroke-width="1"><line x1="60" y1="40" x2="660" y2="40"/><line x1="60" y1="80" x2="660" y2="80"/><line x1="60" y1="120" x2="660" y2="120"/><line x1="60" y1="160" x2="660" y2="160"/></g><text x="40" y="43" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">28%</text><text x="40" y="83" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">24%</text><text x="40" y="123" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">18%</text><text x="40" y="163" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">11%</text><text x="110" y="185" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">Jan 22</text><text x="230" y="185" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">Jan 23</text><text x="350" y="185" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">Jan 24</text><text x="470" y="185" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">Jan 25</text><text x="590" y="185" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">May 26</text><polyline points="60,158 130,155 200,148 250,142 300,135 340,118 380,100 420,88 460,82 500,78 540,72 590,66 640,60 660,57" fill="none" stroke="#ff6b6b" stroke-width="2.5" opacity=".9"/><polygon points="60,158 130,155 200,148 250,142 300,135 340,118 380,100 420,88 460,82 500,78 540,72 590,66 640,60 660,57 660,170 60,170" fill="url(#rg1)"/><circle cx="660" cy="57" r="5" fill="#ff6b6b"/><rect x="595" y="36" width="68" height="18" rx="4" fill="rgba(255,107,107,.15)" stroke="rgba(255,107,107,.4)" stroke-width="1"/><text x="629" y="48" font-size="9" fill="#ff6b6b" text-anchor="middle" font-weight="700">27.5% ▲</text></svg>`,
+  chart_inflation:`<svg viewBox="0 0 680 180" xmlns="http://www.w3.org/2000/svg"><rect width="680" height="180" fill="#0d0d0f" rx="4"/><text x="20" y="22" font-size="11" fill="#999098" font-family="DM Sans,sans-serif">Nigeria Headline Inflation — 12-Month Trend</text><g stroke="rgba(255,255,255,.05)" stroke-width="1"><line x1="60" y1="40" x2="640" y2="40"/><line x1="60" y1="80" x2="640" y2="80"/><line x1="60" y1="120" x2="640" y2="120"/><line x1="60" y1="150" x2="640" y2="150"/></g><text x="50" y="43" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">38%</text><text x="50" y="83" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">32%</text><text x="50" y="123" font-size="9" fill="#6b6870" text-anchor="end" font-family="DM Mono,monospace">28%</text><rect x="66" y="55" width="44" height="95" rx="2" fill="#a78bfa" opacity=".35"/><rect x="116" y="48" width="44" height="102" rx="2" fill="#a78bfa" opacity=".4"/><rect x="166" y="52" width="44" height="98" rx="2" fill="#a78bfa" opacity=".38"/><rect x="216" y="58" width="44" height="92" rx="2" fill="#a78bfa" opacity=".35"/><rect x="266" y="62" width="44" height="88" rx="2" fill="#a78bfa" opacity=".4"/><rect x="316" y="65" width="44" height="85" rx="2" fill="#a78bfa" opacity=".42"/><rect x="366" y="60" width="44" height="90" rx="2" fill="#a78bfa" opacity=".4"/><rect x="416" y="55" width="44" height="95" rx="2" fill="#a78bfa" opacity=".45"/><rect x="466" y="50" width="44" height="100" rx="2" fill="#a78bfa" opacity=".5"/><rect x="516" y="52" width="44" height="98" rx="2" fill="#a78bfa" opacity=".55"/><rect x="566" y="48" width="44" height="102" rx="2" fill="#a78bfa" opacity=".6"/><text x="88" y="165" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">Jun</text><text x="538" y="165" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono,monospace">Apr</text><text x="588" y="44" font-size="8" fill="#e8c97a" text-anchor="middle" font-weight="700" font-family="DM Mono,monospace">31.4%</text></svg>`,
+  sports_hero:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0d2010"/><rect x="80" y="60" width="600" height="140" rx="4" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".3"/><line x1="380" y1="60" x2="380" y2="200" stroke="#4fffb0" stroke-width="1.5" opacity=".3"/><circle cx="380" cy="130" r="40" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".35"/><circle cx="80" cy="130" r="20" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".25"/><circle cx="680" cy="130" r="20" fill="none" stroke="#4fffb0" stroke-width="1" opacity=".25"/><circle cx="380" cy="130" r="10" fill="#4fffb0" opacity=".6"/><text x="200" y="115" font-size="56" fill="#4fffb0" text-anchor="middle" opacity=".8" font-weight="900" font-family="Georgia,serif">4</text><text x="560" y="115" font-size="56" fill="rgba(255,107,107,.7)" text-anchor="middle" font-weight="900" font-family="Georgia,serif">1</text><text x="200" y="140" font-size="10" fill="#4fffb0" text-anchor="middle" opacity=".6">AL-AHLI</text><text x="560" y="140" font-size="10" fill="rgba(255,107,107,.7)" text-anchor="middle" opacity=".7">AL-HILAL</text><text x="380" y="40" font-size="11" fill="#e8c97a" text-anchor="middle" opacity=".8" font-weight="600">SAUDI PRO LEAGUE · FT</text></svg>`,
+  world_hero:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0a0a20"/><circle cx="380" cy="120" r="100" fill="none" stroke="#7eb8ff" stroke-width="1.5" opacity=".4"/><ellipse cx="380" cy="120" rx="50" ry="100" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".3"/><ellipse cx="380" cy="120" rx="100" ry="35" fill="none" stroke="#7eb8ff" stroke-width=".8" opacity=".25"/><line x1="280" y1="120" x2="480" y2="120" stroke="#7eb8ff" stroke-width=".8" opacity=".3"/><line x1="380" y1="20" x2="380" y2="220" stroke="#7eb8ff" stroke-width=".8" opacity=".25"/><circle cx="340" cy="100" r="5" fill="#4fffb0" opacity=".8"/><circle cx="420" cy="130" r="4" fill="#e8c97a" opacity=".8"/><circle cx="360" cy="145" r="4" fill="#a78bfa" opacity=".7"/><circle cx="400" cy="95" r="3" fill="#7eb8ff" opacity=".7"/><circle cx="450" cy="115" r="3" fill="#ff6b6b" opacity=".6"/><text x="380" y="25" font-size="11" fill="#7eb8ff" text-anchor="middle" opacity=".7">G7 AI REGULATION FRAMEWORK</text></svg>`,
+  markets_hero:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="mfg" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#e8c97a" stop-opacity=".2"/><stop offset="100%" stop-color="#e8c97a" stop-opacity="0"/></linearGradient></defs><rect width="760" height="240" fill="#100d00"/><g stroke="rgba(255,255,255,.04)"><line x1="0" y1="60" x2="760" y2="60"/><line x1="0" y1="120" x2="760" y2="120"/><line x1="0" y1="180" x2="760" y2="180"/></g><polyline points="30,210 100,195 160,200 220,180 280,165 340,150 400,135 460,115 520,100 580,85 650,65 720,50" fill="none" stroke="#e8c97a" stroke-width="3" opacity=".9"/><polygon points="30,210 100,195 160,200 220,180 280,165 340,150 400,135 460,115 520,100 580,85 650,65 720,50 720,240 30,240" fill="url(#mfg)"/><circle cx="720" cy="50" r="7" fill="#e8c97a"/><circle cx="720" cy="50" r="14" fill="none" stroke="#e8c97a" stroke-width="1.5" opacity=".35"/><rect x="600" y="25" width="90" height="20" rx="4" fill="rgba(232,201,122,.15)" stroke="rgba(232,201,122,.4)" stroke-width="1"/><text x="645" y="38" font-size="10" fill="#e8c97a" text-anchor="middle" font-weight="700">₦890B PROFIT</text></svg>`,
+};
+
+let currentUrl = '#';
+
+/* Sets the Read Full Article button href directly — never blocked by browsers */
+function setReadBtn(url) {
+  currentUrl = url || '#';
+  const btn = document.getElementById('readFullBtn');
+  if (!btn) return;
+  if (url && url !== '#') {
+    btn.href           = url;
+    btn.style.opacity  = '1';
+    btn.style.pointerEvents = 'auto';
+  } else {
+    btn.href           = '#';
+    btn.style.opacity  = '0.4';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+const A = {
+  hero:{tag:'Nigeria · Breaking',svg:SVGs.hero,url:'https://businessday.ng',headline:'CBN Raises Benchmark Rate to 27.5% as Inflation Battle Intensifies Across West Africa',src:'BusinessDay',time:'38 mins ago',read:'4 min read',
+    body:`<p>The Central Bank of Nigeria's Monetary Policy Committee voted unanimously to raise the benchmark interest rate by 50 basis points to 27.5%, citing persistent inflationary pressures and the need to anchor expectations ahead of the third quarter.</p>
+<p>Governor Olayemi Cardoso said the committee weighed domestic inflation dynamics, global commodity price trends, and exchange rate pass-through effects. "Price stability remains our primary mandate, and the Committee is resolute in its commitment to bring headline inflation back to single digits by the end of 2027."</p>
+<div class="infographic">${SVGs.chart_rate}<div class="infographic-caption">Nigeria MPR trajectory 2022–2026 — steady upward cycle since post-COVID easing</div></div>
+<p>Nigeria's headline inflation stood at 31.4% in April 2026, driven by food prices, elevated energy costs, and a weaker naira.</p>
+<div class="infographic">${SVGs.chart_inflation}<div class="infographic-caption">Monthly headline CPI figures — April 2026 reading: 31.4%</div></div>
+<p>Fixed income traders reacted swiftly, with yields on the 10-year FGN bond rising 48 basis points to 20.6%. The naira held steady at ₦1,614 per dollar in the official window.</p>`},
+
+  s1:{tag:'Technology',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0d1a2e"/><circle cx="380" cy="120" r="80" fill="none" stroke="#4fffb0" stroke-width="2" opacity=".4"/><circle cx="380" cy="120" r="20" fill="#4fffb0" opacity=".2"/><text x="380" y="127" font-size="14" fill="#4fffb0" text-anchor="middle" font-weight="700">FLOW</text><g opacity=".5"><line x1="200" y1="80" x2="300" y2="115" stroke="#7eb8ff" stroke-width="1.5"/><circle cx="200" cy="80" r="8" fill="#0d1a2e" stroke="#7eb8ff" stroke-width="1.5"/><text x="200" y="84" font-size="7" fill="#7eb8ff" text-anchor="middle">GH</text><line x1="200" y1="160" x2="300" y2="125" stroke="#e8c97a" stroke-width="1.5"/><circle cx="200" cy="160" r="8" fill="#0d1a2e" stroke="#e8c97a" stroke-width="1.5"/><text x="200" y="164" font-size="7" fill="#e8c97a" text-anchor="middle">KE</text><line x1="560" y1="80" x2="460" y2="115" stroke="#a78bfa" stroke-width="1.5"/><circle cx="560" cy="80" r="8" fill="#0d1a2e" stroke="#a78bfa" stroke-width="1.5"/><text x="560" y="84" font-size="7" fill="#a78bfa" text-anchor="middle">NG</text><line x1="560" y1="160" x2="460" y2="125" stroke="#ff6b6b" stroke-width="1.5"/><circle cx="560" cy="160" r="8" fill="#0d1a2e" stroke="#ff6b6b" stroke-width="1.5"/><text x="560" y="164" font-size="7" fill="#ff6b6b" text-anchor="middle">ZA</text></g><text x="380" y="30" font-size="11" fill="#4fffb0" text-anchor="middle" opacity=".7">FLUTTERWAVE FLOW — CROSS-BORDER ROUTING</text></svg>`,
+    url:'https://techcabal.com',headline:'Flutterwave Launches AI-Powered Cross-Border Payment Infrastructure for SMEs',src:'TechCabal',time:'1h ago',read:'5 min read',
+    body:`<p>Flutterwave unveiled its AI-driven payments platform — Flutterwave Flow — at the Lagos Innovation Summit, targeting SMEs conducting cross-border trade across Africa.</p><p>The platform uses machine learning to route transactions through the most cost-efficient corridors in real time, reducing settlement from up to three business days to under four hours for most intra-African transfers.</p><p>CEO Olugbenga Agboola said Flow had already processed over $200 million in beta transactions since March, with strong adoption among exporters in Ghana, Kenya, and South Africa sending remittances to Nigerian suppliers. "The SME segment is underserved by the current correspondent banking model. We are building rails that are native to Africa's payment geography."</p>`},
+
+  s2:{tag:'Sports',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0d2010"/><rect x="80" y="50" width="600" height="160" rx="4" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".3"/><line x1="380" y1="50" x2="380" y2="210" stroke="#4fffb0" stroke-width="1.5" opacity=".3"/><circle cx="380" cy="130" r="45" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".35"/><circle cx="380" cy="130" r="8" fill="#4fffb0" opacity=".5"/><g opacity=".7"><circle cx="220" cy="130" r="6" fill="#4fffb0"/><circle cx="540" cy="130" r="6" fill="#4fffb0"/><circle cx="380" cy="85" r="5" fill="#e8c97a"/><circle cx="280" cy="100" r="4" fill="#4fffb0" opacity=".6"/><circle cx="480" cy="100" r="4" fill="#4fffb0" opacity=".6"/><circle cx="300" cy="160" r="4" fill="#4fffb0" opacity=".5"/><circle cx="460" cy="160" r="4" fill="#4fffb0" opacity=".5"/></g><text x="380" y="30" font-size="11" fill="#e8c97a" text-anchor="middle" opacity=".8">SUPER EAGLES — SQUAD FORMATION (4-3-3)</text><text x="380" y="220" font-size="9" fill="#4fffb0" text-anchor="middle" opacity=".6">AFCON QUALIFIERS · NIGERIA VS RWANDA · 6 JUNE</text></svg>`,
+    url:'https://punchng.com/sports',headline:'Super Eagles Coach Names 23-Man Squad Ahead of AFCON Qualifiers in Abuja',src:'Punch Sports',time:'2h ago',read:'3 min read',
+    body:`<p>Nigeria head coach Eric Chelle named a 23-man squad for AFCON qualifying fixtures against Rwanda and Tanzania, to be played in Abuja on 6 and 10 June.</p><p>Victor Osimhen returns from suspension. Captain William Troost-Ekong and Frank Onyeka retain their places. Uncapped Wolves winger Tawanda Chirewa earns his first call-up after impressive Championship form.</p><p>Nigeria sit second in Group D with seven points, trailing Cameroon by two ahead of the final qualification stage.</p>`},
+
+  s3:{tag:'Markets',svg:SVGs.markets_hero,url:'https://nairametrics.com',headline:'NGX Composite Index Breaches 104K — Dangote Cement Leads Gainers',src:'Nairametrics',time:'3h ago',read:'4 min read',
+    body:`<p>The NGX All-Share Index broke through 104,000 points for the first time, driven by a 3.1% surge in Dangote Cement shares to ₦462 after a 28% jump in April cement volumes.</p><p>Market capitalisation of all listed equities crossed ₦60 trillion for the first time, with analysts attributing the bull run to improved macro clarity following the CBN's rate decision and renewed foreign portfolio interest.</p>`},
+
+  s4:{tag:'World',svg:SVGs.world_hero,url:'https://reuters.com',headline:'G7 Finance Ministers Agree on Framework to Regulate Sovereign AI Models',src:'Reuters',time:'4h ago',read:'6 min read',
+    body:`<p>Finance ministers from the G7 agreed in Stresa, Italy on a framework to govern state-backed AI models used in financial surveillance, public spending, and monetary policy modelling.</p><p>The accord calls for transparency around training data, audit rights for national regulators, and a joint AI financial stability task force. US Treasury Secretary Scott Bessent called it "a meaningful first step." The framework is non-binding but expected to inform upcoming EU, UK, and Japanese legislation.</p>`},
+
+  b1:{tag:'Breaking',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#1a0808"/><text x="380" y="100" font-size="60" fill="rgba(255,107,107,.15)" text-anchor="middle" font-weight="900" font-family="Georgia">BREAKING</text><text x="380" y="140" font-size="14" fill="#ff6b6b" text-anchor="middle" opacity=".8">LAGOS TRANSPORT EMERGENCY DECLARED</text><circle cx="100" cy="120" r="30" fill="none" stroke="#ff6b6b" stroke-width="2" opacity=".3"/><text x="100" y="126" font-size="20" fill="#ff6b6b" text-anchor="middle" opacity=".6">!</text><circle cx="660" cy="120" r="30" fill="none" stroke="#ff6b6b" stroke-width="2" opacity=".3"/><text x="660" y="126" font-size="20" fill="#ff6b6b" text-anchor="middle" opacity=".6">!</text></svg>`,
+    url:'https://channelstv.com',headline:'Lagos Declares 48-Hour Transport Emergency Following Fuel Depot Shutdown',src:'Channels TV',time:'12 mins ago',read:'2 min read',
+    body:`<p>The Lagos State Government declared a 48-hour transport sector emergency after a fire at a major fuel depot in Apapa disrupted filling station supply chains, triggering queues and black-market price spikes.</p><p>Governor Sanwo-Olu activated SEMA and directed LAMATA to deploy additional BRT buses at no charge on affected routes. NNPCL said repairs would be completed within 72 hours.</p>`},
+
+  a1:{tag:'Nigeria',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".3"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs><rect width="760" height="240" fill="#0d1a2e"/><line x1="80" y1="40" x2="680" y2="40" stroke="rgba(255,255,255,.05)" stroke-width="1"/><line x1="80" y1="80" x2="680" y2="80" stroke="rgba(255,255,255,.05)" stroke-width="1"/><line x1="80" y1="120" x2="680" y2="120" stroke="rgba(255,255,255,.05)" stroke-width="1"/><line x1="80" y1="160" x2="680" y2="160" stroke="rgba(255,255,255,.05)" stroke-width="1"/><rect x="90" y="120" width="60" height="80" rx="3" fill="#a78bfa" opacity=".4"/><rect x="170" y="95" width="60" height="105" rx="3" fill="#a78bfa" opacity=".5"/><rect x="250" y="70" width="60" height="130" rx="3" fill="#a78bfa" opacity=".6"/><rect x="330" y="85" width="60" height="115" rx="3" fill="#a78bfa" opacity=".55"/><rect x="410" y="55" width="60" height="145" rx="3" fill="#a78bfa" opacity=".7"/><rect x="490" y="45" width="60" height="155" rx="3" fill="#a78bfa" opacity=".75"/><rect x="570" y="35" width="60" height="165" rx="3" fill="#a78bfa" opacity=".8"/><text x="380" y="25" font-size="11" fill="#a78bfa" text-anchor="middle" opacity=".8">₦2.1 TRILLION BOND — LAGOS–KANO RAIL</text><text x="120" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">IBD</text><text x="200" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">PFAs</text><text x="280" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">DFIs</text><text x="360" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">INS</text><text x="440" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">HNI</text><text x="520" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">INST</text><text x="600" y="210" font-size="7" fill="#6b6870" text-anchor="middle" font-family="DM Mono">INTL</text></svg>`,
+    url:'https://vanguardngr.com',headline:'FG Unveils ₦2.1 Trillion Infrastructure Bond for Lagos–Kano Rail Corridor Expansion',src:'Vanguard',time:'55 mins ago',read:'5 min read',
+    body:`<p>The Federal Government unveiled a ₦2.1 trillion infrastructure bond programme to finance the Lagos–Kano Standard Gauge Rail Corridor expansion — Nigeria's largest single infrastructure capital market transaction.</p><p>The bond carries a 15-year tenor and coupon of 18.5%, structured to attract pension fund administrators, development finance institutions, and insurance companies seeking long-duration assets. Roadshows begin in London and Dubai in early June.</p><p>The expansion adds 420 kilometres of new track with upgraded stations and intermodal hubs at each terminus. Projected completion: 2030. Expected jobs created: 50,000+.</p>`},
+
+  a2:{tag:'Technology',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0a1520"/><text x="380" y="30" font-size="11" fill="#7eb8ff" text-anchor="middle" opacity=".7">OPENAI × AFRICA — USSD AI DEPLOYMENT</text><g><circle cx="120" cy="120" r="35" fill="#0d1a2e" stroke="#7eb8ff" stroke-width="1.5" opacity=".7"/><text x="120" y="117" font-size="8" fill="#7eb8ff" text-anchor="middle">MTN</text><text x="120" y="130" font-size="7" fill="#7eb8ff" text-anchor="middle" opacity=".6">8 countries</text></g><g><circle cx="380" cy="120" r="40" fill="#0d1a2e" stroke="#4fffb0" stroke-width="2" opacity=".8"/><text x="380" y="116" font-size="9" fill="#4fffb0" text-anchor="middle" font-weight="700">OpenAI</text><text x="380" y="130" font-size="7" fill="#4fffb0" text-anchor="middle">USSD AI</text></g><g><circle cx="640" cy="80" r="30" fill="#0d1a2e" stroke="#e8c97a" stroke-width="1.5" opacity=".7"/><text x="640" y="77" font-size="7" fill="#e8c97a" text-anchor="middle">Airtel</text><text x="640" y="90" font-size="6" fill="#e8c97a" text-anchor="middle" opacity=".6">Africa</text><circle cx="640" cy="170" r="28" fill="#0d1a2e" stroke="#a78bfa" stroke-width="1.5" opacity=".7"/><text x="640" y="167" font-size="7" fill="#a78bfa" text-anchor="middle">Safaricom</text><text x="640" y="180" font-size="6" fill="#a78bfa" text-anchor="middle" opacity=".6">Kenya</text></g><line x1="155" y1="120" x2="340" y2="120" stroke="#7eb8ff" stroke-width="1.5" opacity=".5" stroke-dasharray="4,3"/><line x1="420" y1="105" x2="610" y2="85" stroke="#e8c97a" stroke-width="1.5" opacity=".5" stroke-dasharray="4,3"/><line x1="420" y1="135" x2="612" y2="162" stroke="#a78bfa" stroke-width="1.5" opacity=".5" stroke-dasharray="4,3"/><text x="380" y="220" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono">600M+ potential users · offline-first · Hausa · Swahili · Amharic · Zulu</text></svg>`,
+    url:'https://techcrunch.com',headline:'OpenAI Partners with Three African Telecoms to Deploy Offline-First AI Models via USSD',src:'TechCrunch',time:'1h 20m ago',read:'6 min read',
+    body:`<p>OpenAI announced a partnership with MTN, Airtel Africa, and Safaricom to deploy compressed, offline-first AI models accessible via USSD — targeting 600 million Africans without reliable internet.</p><p>The models will initially offer health information, agricultural advisory, and basic financial guidance in English, Hausa, Swahili, Amharic, and Zulu. CEO Sam Altman said the initiative represented a fundamental rethinking of AI deployment. "The assumption that AI requires a smartphone and broadband is a constraint of imagination, not technology." Pilots begin Q3 2026.</p>`},
+
+  a3:{tag:'Sports',svg:SVGs.sports_hero,url:'https://espn.com',headline:'Victor Osimhen Bags Hat-Trick as Al-Ahli Beat Al-Hilal 4–1 in Saudi Pro League Showdown',src:'ESPN',time:'2h ago',read:'3 min read',
+    body:`<p>Victor Osimhen scored three goals and provided an assist as Al-Ahli dismantled Al-Hilal 4–1 in a fiercely contested Riyadh derby. The Nigerian striker opened scoring in the 12th minute, added a header before half-time, and completed his hat-trick in the 71st with a low drive.</p><p>His agent confirmed no transfer offers had been received but said the player's future would be "assessed at the end of the season," with Chelsea, Arsenal, and PSG all reportedly tracking the situation.</p>`},
+
+  a4:{tag:'World',svg:SVGs.world_hero,url:'https://bloomberg.com',headline:'IMF Upgrades Sub-Saharan Africa Growth Forecast to 4.7% for 2026',src:'Bloomberg',time:'3h ago',read:'7 min read',
+    body:`<p>The IMF upgraded its Sub-Saharan Africa growth forecast to 4.7% for 2026, up from 4.1% in January, citing stronger domestic consumption, improved fiscal discipline, and rising agricultural productivity.</p><p>Nigeria's forecast was revised to 4.2%, with Ethiopia (6.8%), Kenya (5.4%), and Rwanda (7.1%) also highlighted as outperformers. IMF Africa Director Abebe Selassie noted "resilience and reform momentum" but cautioned on global trade tensions and climate risk.</p>`},
+
+  a5:{tag:'Markets',svg:SVGs.markets_hero,url:'https://nairametrics.com',headline:'Zenith Bank Posts ₦890 Billion Pre-Tax Profit for Q1 2026 — Analysts Call it Sector-Defining',src:'Nairametrics',time:'4h ago',read:'4 min read',
+    body:`<p>Zenith Bank reported a pre-tax profit of ₦890 billion for Q1 2026 — a 74% year-on-year increase — with Stanbic IBTC Capital calling it "sector-defining." FX revaluation income surged 112%; digital fees grew strongly; trade finance expanded 34%. NPL ratio improved to 3.2% from 4.1%.</p><p>Shares closed at an all-time high of ₦48.80, giving Zenith a market cap of approximately ₦1.53 trillion.</p>`},
+
+  n1:{tag:'Nigeria',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#1a0a00"/><rect x="200" y="40" width="360" height="180" rx="6" fill="none" stroke="#f4a261" stroke-width="1.5" opacity=".4"/><rect x="220" y="60" width="320" height="20" rx="3" fill="#f4a261" opacity=".2"/><rect x="220" y="90" width="240" height="12" rx="2" fill="#f4a261" opacity=".15"/><rect x="220" y="110" width="280" height="12" rx="2" fill="#f4a261" opacity=".12"/><rect x="220" y="130" width="200" height="12" rx="2" fill="#f4a261" opacity=".15"/><rect x="220" y="150" width="260" height="12" rx="2" fill="#f4a261" opacity=".12"/><rect x="220" y="170" width="180" height="12" rx="2" fill="#f4a261" opacity=".1"/><rect x="340" y="30" width="80" height="14" rx="2" fill="#f4a261" opacity=".4"/><text x="380" y="75" font-size="9" fill="#f4a261" text-anchor="middle" font-weight="700" opacity=".8">PETROLEUM REVENUE TRANSPARENCY BILL</text><text x="80" y="120" font-size="24" fill="#4fffb0" text-anchor="middle" opacity=".8" font-weight="900">89</text><text x="80" y="140" font-size="8" fill="#4fffb0" text-anchor="middle" opacity=".7">Ayes</text><text x="680" y="120" font-size="24" fill="#ff6b6b" text-anchor="middle" opacity=".8" font-weight="900">12</text><text x="680" y="140" font-size="8" fill="#ff6b6b" text-anchor="middle" opacity=".7">Noes</text></svg>`,
+    url:'https://channelstv.com',headline:'Senate Passes Petroleum Revenue Transparency Bill After Three Years of Deadlock',src:'Channels TV',time:'1h ago',read:'4 min read',
+    body:`<p>The Nigerian Senate passed the Petroleum Revenue Transparency and Accountability Bill — 89 votes to 12 — ending three years of legislative gridlock. The bill mandates real-time public disclosure of all NNPCL revenues including crude lifting proceeds, signature bonuses, and gas flare penalties.</p><p>Senate President Godswill Akpabio described it as "a watershed moment for fiscal accountability," expected to rebuild investor confidence in Nigeria's upstream sector.</p>`},
+
+  n2:{tag:'Nigeria',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f97316" stop-opacity=".3"/><stop offset="100%" stop-color="#f97316" stop-opacity="0"/></linearGradient></defs><rect width="760" height="240" fill="#1a0800"/><text x="380" y="25" font-size="11" fill="#f97316" text-anchor="middle" opacity=".7">DANGOTE REFINERY — CAPACITY RAMP-UP</text><rect x="80" y="60" width="600" height="30" rx="4" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.1)" stroke-width="1"/><rect x="80" y="60" width="420" height="30" rx="4" fill="#f97316" opacity=".7"/><text x="380" y="80" font-size="12" fill="white" text-anchor="middle" font-weight="700">70% Capacity (420K bbl/day)</text><rect x="80" y="110" width="600" height="20" rx="3" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/><rect x="80" y="110" width="420" height="20" rx="3" fill="#f97316" opacity=".4"/><text x="390" y="124" font-size="9" fill="#f97316" text-anchor="middle" opacity=".8">30M litres/day PMS output</text><text x="80" y="160" font-size="10" fill="#6b6870" font-family="DM Mono">Target: 650K bbl/day full capacity by Q3 2026</text><text x="80" y="178" font-size="10" fill="#6b6870" font-family="DM Mono">Import bill reduction: ~$5 billion/year</text><text x="80" y="196" font-size="10" fill="#6b6870" font-family="DM Mono">Market share: ~35% of Nigeria's daily petrol demand</text></svg>`,
+    url:'https://punchng.com',headline:'Dangote Refinery Reaches 70% Capacity as PMS Output Hits 30 Million Litres Daily',src:'Punch',time:'2h ago',read:'5 min read',
+    body:`<p>The Dangote Petroleum Refinery has reached 70% operational capacity — 30 million litres of PMS per day — now meeting approximately 35% of Nigeria's daily petrol demand. Full capacity of 650,000 barrels per day is targeted before end of Q3 2026.</p><p>Economists estimate the ramp-up could reduce Nigeria's annual fuel import bill by up to $5 billion, alleviating FX pressure and contributing to naira stability.</p>`},
+
+  n3:{tag:'Nigeria',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#001020"/><g opacity=".4"><rect x="60" y="120" width="30" height="100" rx="2" fill="#7eb8ff"/><rect x="100" y="80" width="30" height="140" rx="2" fill="#7eb8ff"/><rect x="140" y="60" width="30" height="160" rx="2" fill="#7eb8ff"/><rect x="180" y="90" width="30" height="130" rx="2" fill="#7eb8ff"/><rect x="300" y="70" width="30" height="150" rx="2" fill="#4fffb0"/><rect x="340" y="50" width="30" height="170" rx="2" fill="#4fffb0"/><rect x="380" y="80" width="30" height="140" rx="2" fill="#4fffb0"/><rect x="560" y="100" width="30" height="120" rx="2" fill="#e8c97a"/><rect x="600" y="75" width="30" height="145" rx="2" fill="#e8c97a"/><rect x="640" y="55" width="30" height="165" rx="2" fill="#e8c97a"/></g><circle cx="380" cy="40" r="15" fill="#4fffb0" opacity=".3" stroke="#4fffb0" stroke-width="1.5" opacity2=".6"/><text x="380" y="45" font-size="10" fill="#4fffb0" text-anchor="middle" font-weight="700">5G</text><text x="380" y="215" font-size="10" fill="#7eb8ff" text-anchor="middle" opacity=".6">LAGOS SMART CITY · ₦400B FEDERAL INVESTMENT · 2026–2031</text></svg>`,
+    url:'https://businessday.ng',headline:'Lagos Smart City Blueprint Gets Federal Backing with ₦400 Billion Over 5 Years',src:'BusinessDay',time:'3h ago',read:'6 min read',
+    body:`<p>The Federal Executive Council approved ₦400 billion co-investment in the Lagos Smart City Master Plan over five years — broadband infrastructure, 5G rollout, digital public services, and a tech corridor from Lagos Island through Lekki to Epe.</p><p>Lagos is targeted as a top-five African tech hub by 2030. A Special Economic Zone with preferential corporate tax rates and dedicated fibre and power infrastructure will anchor the corridor.</p>`},
+
+  w1:{tag:'World',svg:SVGs.world_hero,url:'https://reuters.com',headline:'US Treasury and EU Agree on Joint Sanctions Framework Targeting AI-Enabled Financial Crime',src:'Reuters',time:'45 mins ago',read:'5 min read',
+    body:`<p>The US Treasury and European Commission announced a joint transatlantic sanctions framework targeting AI-enabled financial crime — the first of its kind — covering deepfake fraud, synthetic identity theft, and AI-driven commodity market manipulation.</p><p>The framework creates a shared watchlist with automatic asset freezes on both sides of the Atlantic. Treasury Secretary Bessent said AI-powered financial crime was "a threat that no single jurisdiction can contain."</p>`},
+
+  w2:{tag:'World',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="chn" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#ff6b6b" stop-opacity=".25"/><stop offset="100%" stop-color="#ff6b6b" stop-opacity="0"/></linearGradient></defs><rect width="760" height="240" fill="#1a0a00"/><text x="380" y="25" font-size="11" fill="#ff6b6b" text-anchor="middle" opacity=".7">ASIA EQUITY MARKETS — RESPONSE TO CHINA STIMULUS</text><rect x="100" y="100" width="70" height="90" rx="3" fill="#ff6b6b" opacity=".4"/><rect x="200" y="80" width="70" height="110" rx="3" fill="#ff6b6b" opacity=".55"/><rect x="300" y="60" width="70" height="130" rx="3" fill="#ff6b6b" opacity=".65"/><rect x="400" y="75" width="70" height="115" rx="3" fill="#ff6b6b" opacity=".55"/><rect x="500" y="50" width="70" height="140" rx="3" fill="#ff6b6b" opacity=".7"/><rect x="600" y="45" width="70" height="145" rx="3" fill="#ff6b6b" opacity=".8"/><text x="135" y="200" font-size="8" fill="#6b6870" text-anchor="middle" font-family="DM Mono">KOSPI</text><text x="235" y="200" font-size="8" fill="#6b6870" text-anchor="middle" font-family="DM Mono">Nikkei</text><text x="335" y="200" font-size="8" fill="#6b6870" text-anchor="middle" font-family="DM Mono">SSE</text><text x="435" y="200" font-size="8" fill="#6b6870" text-anchor="middle" font-family="DM Mono">ASX</text><text x="535" y="200" font-size="8" fill="#6b6870" text-anchor="middle" font-family="DM Mono">HSI</text><text x="635" y="200" font-size="8" fill="#ff6b6b" text-anchor="middle" font-family="DM Mono" font-weight="700">+5.2%</text><text x="135" y="95" font-size="7" fill="#ff6b6b" text-anchor="middle">+2.1%</text><text x="235" y="75" font-size="7" fill="#ff6b6b" text-anchor="middle">+2.8%</text><text x="335" y="55" font-size="7" fill="#ff6b6b" text-anchor="middle">+4.7%</text><text x="435" y="70" font-size="7" fill="#ff6b6b" text-anchor="middle">+2.4%</text><text x="535" y="45" font-size="7" fill="#ff6b6b" text-anchor="middle">+3.9%</text></svg>`,
+    url:'https://bbc.com/news',headline:"China's $1.2 Trillion Stimulus Sends Asian Markets Surging to Multi-Year Highs",src:'BBC',time:'2h ago',read:'7 min read',
+    body:`<p>Asian equity markets surged after China's PBOC and State Council announced a $1.2 trillion stimulus package — infrastructure bonds, property relief, and consumption subsidies.</p><p>Shanghai Composite +4.7%, Hang Seng +5.2% — its largest single-day gain since November 2022. The package includes ¥4.2 trillion in infrastructure bonds, ¥1.8 trillion for property stabilisation, and ¥800 direct consumption vouchers per household via mobile payment platforms.</p>`},
+
+  m1:{tag:'Markets',svg:SVGs.markets_hero,url:'https://nairametrics.com',headline:'NGX Records Highest Foreign Portfolio Inflow in 18 Months at $620M in April',src:'Nairametrics',time:'30 mins ago',read:'5 min read',
+    body:`<p>Foreign portfolio investment into the NGX reached $620 million in April — the highest monthly figure in 18 months. Banking stocks attracted 61% of inflows, consumer goods 18%, industrials 14%.</p><p>FBNQuest economist Chinwe Egwim attributed the surge to credible CBN policy, strong Q1 corporate earnings, and China's global risk-on stimulus announcement.</p>`},
+
+  m2:{tag:'Markets',svg:SVGs.markets_hero,url:'https://businessday.ng',headline:'GTCO, Access Holdings Lead Tier-1 Bank Earnings Season With Double-Digit Revenue Growth',src:'BusinessDay',time:'1h 40m ago',read:'4 min read',
+    body:`<p>GTCO reported gross earnings of ₦612 billion for Q1 2026 (+58% YoY), pre-tax profit ₦310 billion — 14% ahead of consensus. Access Holdings posted ₦890 billion gross earnings (+71%) and pre-tax profit of ₦278 billion.</p><p>Both results driven by retail lending, trade finance, and digital fees as the cashless policy deepens penetration.</p>`},
+
+  t1:{tag:'Technology',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0a1020"/><circle cx="380" cy="120" r="60" fill="none" stroke="#7eb8ff" stroke-width="1.5" opacity=".4"/><circle cx="380" cy="120" r="10" fill="#4fffb0" opacity=".7"/><g><circle cx="180" cy="80" r="20" fill="#0a1020" stroke="#7eb8ff" stroke-width="1.2" opacity=".7"/><text x="180" y="84" font-size="7" fill="#7eb8ff" text-anchor="middle" opacity=".8">CIV</text><line x1="200" y1="86" x2="322" y2="112" stroke="#7eb8ff" stroke-width=".8" opacity=".4" stroke-dasharray="3,3"/></g><g><circle cx="580" cy="80" r="20" fill="#0a1020" stroke="#e8c97a" stroke-width="1.2" opacity=".7"/><text x="580" y="84" font-size="7" fill="#e8c97a" text-anchor="middle" opacity=".8">SEN</text><line x1="560" y1="86" x2="438" y2="112" stroke="#e8c97a" stroke-width=".8" opacity=".4" stroke-dasharray="3,3"/></g><g><circle cx="180" cy="170" r="20" fill="#0a1020" stroke="#a78bfa" stroke-width="1.2" opacity=".7"/><text x="180" y="174" font-size="7" fill="#a78bfa" text-anchor="middle" opacity=".8">CMR</text><line x1="200" y1="164" x2="322" y2="128" stroke="#a78bfa" stroke-width=".8" opacity=".4" stroke-dasharray="3,3"/></g><g><circle cx="580" cy="170" r="20" fill="#0a1020" stroke="#4fffb0" stroke-width="1.2" opacity=".7"/><text x="580" y="174" font-size="7" fill="#4fffb0" text-anchor="middle" opacity=".8">DRC</text><line x1="560" y1="164" x2="438" y2="128" stroke="#4fffb0" stroke-width=".8" opacity=".4" stroke-dasharray="3,3"/></g><text x="380" y="25" font-size="11" fill="#4fffb0" text-anchor="middle" opacity=".7">ANDELA — 12 NEW FRANCOPHONE MARKETS</text><text x="380" y="210" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono">$75M Series E · SoftBank Vision Fund 2 · 28,000+ engineers placed globally</text></svg>`,
+    url:'https://techcabal.com',headline:'Andela Expands Pan-African Engineering Talent Network to 12 New Countries in Francophone Africa',src:'TechCabal',time:'1h ago',read:'5 min read',
+    body:`<p>Andela announced expansion into 12 new Francophone African countries, backed by a $75 million Series E led by SoftBank Vision Fund 2 and Helios Investment Partners.</p><p>Target markets include Côte d'Ivoire, Senegal, Cameroon, Burkina Faso, and 8 others with growing engineering student populations but limited global tech career pathways. Andela has placed over 28,000 engineers globally since founding, with average salaries 12x local alternatives.</p>`},
+
+  t2:{tag:'Technology',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#050510"/><rect x="260" y="30" width="240" height="180" rx="16" fill="none" stroke="#c8c5c0" stroke-width="2" opacity=".5"/><rect x="278" y="48" width="204" height="144" rx="8" fill="rgba(200,197,192,.07)"/><circle cx="380" cy="120" r="40" fill="none" stroke="#7eb8ff" stroke-width="2" opacity=".6"/><circle cx="380" cy="120" r="15" fill="none" stroke="#7eb8ff" stroke-width="1.5" opacity=".8"/><circle cx="380" cy="120" r="5" fill="#7eb8ff" opacity=".6"/><line x1="380" y1="80" x2="380" y2="70" stroke="#7eb8ff" stroke-width="1.5" opacity=".5"/><line x1="380" y1="160" x2="380" y2="170" stroke="#7eb8ff" stroke-width="1.5" opacity=".5"/><line x1="340" y1="120" x2="330" y2="120" stroke="#7eb8ff" stroke-width="1.5" opacity=".5"/><line x1="420" y1="120" x2="430" y2="120" stroke="#7eb8ff" stroke-width="1.5" opacity=".5"/><text x="380" y="20" font-size="11" fill="#c8c5c0" text-anchor="middle" opacity=".6">APPLE VISION PRO 2 · NIGERIA</text><rect x="100" y="85" width="120" height="70" rx="6" fill="#0a0a20" stroke="#e8c97a" stroke-width="1" opacity=".5"/><text x="160" y="115" font-size="9" fill="#e8c97a" text-anchor="middle" opacity=".8">₦4.8M</text><text x="160" y="130" font-size="7" fill="#6b6870" text-anchor="middle">~$2,980</text><rect x="540" y="85" width="120" height="70" rx="6" fill="#0a0a20" stroke="#4fffb0" stroke-width="1" opacity=".5"/><text x="600" y="112" font-size="8" fill="#4fffb0" text-anchor="middle" opacity=".8">iStore</text><text x="600" y="126" font-size="8" fill="#4fffb0" text-anchor="middle" opacity=".7">+ Slot Ltd</text></svg>`,
+    url:'https://theverge.com',headline:'Apple Vision Pro 2 Arrives in Nigeria Through Authorised Resellers — Priced at ₦4.8 Million',src:'The Verge',time:'3h ago',read:'3 min read',
+    body:`<p>Apple's Vision Pro 2 has arrived in Nigeria through iStore and Slot Limited at ₦4.8 million (~$2,980), marking Apple's most direct push into the Nigerian premium consumer technology market after years of grey-market importation.</p><p>Both retailers offer in-store demonstration booths and trade-in programmes. Pre-order waitlists filled within 48 hours. Analysts note the arrival signals Nigeria's growing status as a tier-two Apple market in Africa.</p>`},
+
+  sp1:{tag:'Sports',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#0d2010"/><rect x="80" y="50" width="600" height="160" rx="4" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".3"/><line x1="380" y1="50" x2="380" y2="210" stroke="#4fffb0" stroke-width="1.5" opacity=".3"/><circle cx="380" cy="130" r="40" fill="none" stroke="#4fffb0" stroke-width="1.5" opacity=".35"/><circle cx="380" cy="130" r="8" fill="#4fffb0" opacity=".5"/><text x="200" y="110" font-size="48" fill="#4fffb0" text-anchor="middle" opacity=".8" font-weight="900" font-family="Georgia">3</text><text x="560" y="110" font-size="48" fill="rgba(255,107,107,.6)" text-anchor="middle" font-weight="900" font-family="Georgia">0</text><text x="200" y="135" font-size="9" fill="#4fffb0" text-anchor="middle" opacity=".7">NIGERIA</text><text x="560" y="135" font-size="9" fill="rgba(255,107,107,.7)" text-anchor="middle">SOUTH AFRICA</text><text x="380" y="35" font-size="10" fill="#e8c97a" text-anchor="middle" opacity=".8" font-weight="700">AFCON QUALIFIER · MOSHOOD ABIOLA STADIUM · FT</text><text x="200" y="165" font-size="8" fill="#4fffb0" text-anchor="middle" opacity=".6">Oshoala ⚽ Ajibade ⚽⚽</text><text x="380" y="220" font-size="9" fill="#e8c97a" text-anchor="middle" opacity=".7">✓ QUALIFIED FOR 2027 FIFA WOMEN'S WORLD CUP</text></svg>`,
+    url:'https://espn.com',headline:"Super Falcons Qualify for 2027 FIFA Women's World Cup With Two Games to Spare",src:'ESPN',time:'2h ago',read:'4 min read',
+    body:`<p>Nigeria's Super Falcons sealed qualification for the 2027 FIFA Women's World Cup with a 3–0 victory over South Africa in Abuja. Asisat Oshoala converted from the spot in the 18th minute; Rasheedat Ajibade added a second before half-time and completed her brace in the 63rd.</p><p>Goalkeeper Chiamaka Nnadozie's crucial penalty save preserved the clean sheet. Nigeria became the first African nation to qualify for the tournament, co-hosted by Brazil and Colombia.</p>`},
+
+  sp2:{tag:'Sports',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rtrack" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ff6b6b" stop-opacity=".3"/><stop offset="100%" stop-color="#e8c97a" stop-opacity=".3"/></linearGradient></defs><rect width="760" height="240" fill="#200008"/><text x="380" y="25" font-size="11" fill="#e8c97a" text-anchor="middle" opacity=".8">FORMULA 1 — MONACO GRAND PRIX 2026 · RACE RESULT</text><rect x="60" y="60" width="640" height="8" rx="4" fill="url(#rtrack)" opacity=".6"/><g><rect x="80" y="80" width="200" height="40" rx="4" fill="rgba(232,201,122,.1)" stroke="#e8c97a" stroke-width="1.5" opacity=".8"/><text x="180" y="96" font-size="10" fill="#e8c97a" text-anchor="middle" font-weight="700">🏆 1ST — LECLERC</text><text x="180" y="112" font-size="8" fill="#e8c97a" text-anchor="middle" opacity=".7">Ferrari · +0.000s</text></g><g><rect x="300" y="80" width="180" height="40" rx="4" fill="rgba(200,197,192,.08)" stroke="#c8c5c0" stroke-width="1" opacity=".7"/><text x="390" y="96" font-size="10" fill="#c8c5c0" text-anchor="middle" font-weight="600">2ND — SAINZ</text><text x="390" y="112" font-size="8" fill="#6b6870" text-anchor="middle">Ferrari · +8.2s</text></g><g><rect x="500" y="80" width="180" height="40" rx="4" fill="rgba(30,65,165,.15)" stroke="#7eb8ff" stroke-width="1" opacity=".7"/><text x="590" y="96" font-size="10" fill="#7eb8ff" text-anchor="middle" font-weight="600">3RD — VERSTAPPEN</text><text x="590" y="112" font-size="8" fill="#6b6870" text-anchor="middle">Red Bull · +14.7s</text></g><rect x="80" y="150" width="580" height="12" rx="3" fill="rgba(232,201,122,.2)"/><rect x="80" y="150" width="420" height="12" rx="3" fill="#e8c97a" opacity=".5"/><text x="370" y="180" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono">Ferrari leads Constructors' Championship by 47pts with 8 races remaining</text></svg>`,
+    url:'https://bbc.com/sport',headline:'Formula 1: Ferrari Dominates Monaco Grand Prix as Leclerc Claims Home Victory Again',src:'BBC Sport',time:'4h ago',read:'5 min read',
+    body:`<p>Charles Leclerc claimed his fourth Monaco Grand Prix victory from pole position, giving Ferrari a dominant one-two finish with Carlos Sainz. Max Verstappen finished third after a controversial late pit-stop call.</p><p>Ferrari now lead the Constructors' Championship by 47 points over Red Bull with eight races remaining in 2026.</p>`},
+
+  p1:{tag:'Politics',svg:`<svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg"><rect width="760" height="240" fill="#100800"/><text x="380" y="25" font-size="11" fill="#f4a261" text-anchor="middle" opacity=".7">NIGERIA 2027 GOVERNORSHIP FLASHPOINTS</text><g><circle cx="160" cy="120" r="45" fill="rgba(244,162,97,.1)" stroke="#f4a261" stroke-width="1.5" opacity=".7"/><text x="160" y="116" font-size="9" fill="#f4a261" text-anchor="middle" font-weight="700">ANAMBRA</text><text x="160" y="130" font-size="7" fill="#f4a261" text-anchor="middle" opacity=".6">Contested</text></g><g><circle cx="300" cy="120" r="45" fill="rgba(244,162,97,.1)" stroke="#f4a261" stroke-width="1.5" opacity=".7"/><text x="300" y="116" font-size="9" fill="#f4a261" text-anchor="middle" font-weight="700">OSUN</text><text x="300" y="130" font-size="7" fill="#f4a261" text-anchor="middle" opacity=".6">Delegate dispute</text></g><g><circle cx="460" cy="120" r="45" fill="rgba(244,162,97,.12)" stroke="#f4a261" stroke-width="1.5" opacity=".8"/><text x="460" y="116" font-size="9" fill="#f4a261" text-anchor="middle" font-weight="700">OYO</text><text x="460" y="130" font-size="7" fill="#f4a261" text-anchor="middle" opacity=".6">APC/PDP split</text></g><g><circle cx="610" cy="120" r="45" fill="rgba(244,162,97,.1)" stroke="#f4a261" stroke-width="1.5" opacity=".7"/><text x="610" y="116" font-size="9" fill="#f4a261" text-anchor="middle" font-weight="700">KADUNA</text><text x="610" y="130" font-size="7" fill="#f4a261" text-anchor="middle" opacity=".6">Factional</text></g><text x="380" y="210" font-size="9" fill="#6b6870" text-anchor="middle" font-family="DM Mono">INEC primaries deadline: November 2026</text></svg>`,
+    url:'https://vanguardngr.com',headline:'APC and PDP Face Factional Contests in Four Key States Ahead of 2027 Elections',src:'Vanguard',time:'1h ago',read:'6 min read',
+    body:`<p>Nigeria's two major parties face significant internal tensions ahead of the 2027 governorship elections. Anambra, Osun, Oyo, and Kaduna are flashpoints where aspirants contest delegate allocation through party channels and the courts.</p><p>INEC warned parties to resolve internal disputes before the November primaries monitoring deadline, cautioning that failure to present an undisputed candidate could result in disqualification from specific state races.</p>`},
+
+  p2:{tag:'Politics',svg:SVGs.world_hero,url:'https://channelstv.com',headline:'ECOWAS Summit Yields New Regional Security Pact as Sahel Tensions Persist',src:'Channels TV',time:'3h ago',read:'5 min read',
+    body:`<p>The 66th ECOWAS Summit in Abuja adopted a new Regional Security Cooperation Agreement — a 5,000-troop joint rapid-response force and shared intelligence architecture targeting cross-border militant activity across the Sahel.</p><p>A Sahel Security Coordination Centre will be established in Niamey. President Tinubu called it "the most substantive regional security commitment in a generation" and called on international partners to operationalise the force within 12 months.</p>`},
+};
+
+/* ═══ MODAL — static demo articles ═══ */
+function openArticle(id){
+  const a = A[id]; if(!a) return;
+  setReadBtn(a.url);
+  document.getElementById('mTag').textContent  = a.tag;
+  document.getElementById('mHead').textContent = a.headline;
+  document.getElementById('mSrc').textContent  = a.src;
+  document.getElementById('mTime').textContent = a.time;
+  document.getElementById('mRead').textContent = '· ' + a.read;
+  document.getElementById('mBody').innerHTML   = a.body;
+  document.getElementById('mImg').innerHTML    = a.svg || '';
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function overlayClick(e){
+  if(e.target===document.getElementById('modalOverlay')) closeModal();
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ═══ TABS ═══ */
+document.getElementById('navTabs').addEventListener('click',function(e){
+  e.preventDefault();
+  const a=e.target.closest('a[data-tab]'); if(!a) return;
+  document.querySelectorAll('.tabs a').forEach(x=>x.classList.remove('active'));
+  a.classList.add('active');
+  document.querySelectorAll('.tc').forEach(x=>x.classList.remove('active'));
+  const tabId = a.dataset.tab;
+  const t=document.getElementById('tab-'+tabId);
+  if(t){ t.classList.add('active'); loadTab(tabId, tabId); }
+});
+
+/* ═══ THEME ═══ */
+document.getElementById('themeBtn').addEventListener('click',function(){
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  this.textContent=dark?'☀':'☽';
+});
+</script>
+</body>
+</html>
