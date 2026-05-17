@@ -1,23 +1,26 @@
 {
-  "name": "meridian",
+  "name": "the-meridian",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "The Meridian — Real-time Nigerian & global news aggregator",
+  "main": "server.js",
   "scripts": {
-    "start":   "node server.js",
-    "dev":     "node --watch server.js",
-    "test":    "node test-security.js"
+    "start": "node server.js",
+    "dev":   "node server.js",
+    "test":  "node test-security.js"
+  },
+  "engines": {
+    "node": "18.x"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.5.2",
-    "helmet": "^8.1.0",
-    "node-fetch": "^3.3.2",
-    "rss-parser": "^3.13.0"
+    "cors": "2.8.5",
+    "dotenv": "16.4.5",
+    "express": "4.18.2",
+    "express-rate-limit": "7.1.5",
+    "helmet": "7.1.0",
+    "pg": "8.11.3",
+    "rss-parser": "3.13.0"
   }
 }
